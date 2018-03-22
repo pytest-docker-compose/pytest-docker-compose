@@ -67,7 +67,7 @@ To interact with Docker containers in your tests, use the following fixtures:
                 docker_network_info: typing.Dict[str, typing.List[NetworkInfo]],
         ) -> ApiClient:
             # ``docker_network_info`` is grouped by service name.
-            service = docker_network_info["my_api_service"]
+            service = docker_network_info["my_api_service"][0]
 
             return ApiClient(
                 base_url=f"http://{service.hostname}:{service.port}/api/v1",
