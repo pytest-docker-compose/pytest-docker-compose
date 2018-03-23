@@ -40,10 +40,6 @@ See `Installing and Using Plugins`_ for more information.
 
 To interact with Docker containers in your tests, use the following fixtures:
 
-``docker_containers``
-    A list of the Docker ``compose.container.Container`` objects running during
-    the test.
-
 ``docker_network_info``
     A list of ``pytest_docker_compose.NetworkInfo`` objects for each container,
     grouped by service name.
@@ -62,6 +58,14 @@ To interact with Docker containers in your tests, use the following fixtures:
 
     - ``host_port``: The port number to use when connecting to the service from
       the host.
+
+    .. tip::
+        Unless you need to interface directly with Docker primitives, this is
+        the fixture to use in your tests.
+
+``docker_containers``
+    A list of the Docker ``compose.container.Container`` objects running during
+    the test.
 
 ``docker_project``
     The ``compose.project.Project`` object that the containers are built from.
