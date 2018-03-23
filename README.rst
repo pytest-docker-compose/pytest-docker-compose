@@ -108,7 +108,7 @@ online before starting each test.
 
         # Create an instance of our custom application's API client.
         api_client = ApiClient(
-            base_url=f"http://{service.hostname}:{service.port}/api/v1",
+            base_url=f"http://{service.hostname}:{service.host_port}/api/v1",
         )
 
         # Wait for the HTTP service to be ready.
