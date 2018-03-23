@@ -61,7 +61,7 @@ To interact with Docker containers in your tests, use the following fixtures:
 
     .. tip::
         Unless you need to interface directly with Docker primitives, this is
-        the fixture to use in your tests.
+        the correct fixture to use in your tests.
 
 ``docker_containers``
     A list of the Docker ``compose.container.Container`` objects running during
