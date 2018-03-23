@@ -46,37 +46,79 @@ To interact with Docker containers in your tests, use the following fixtures:
     ``NetworkInfo`` is a namedtuple with ``hostname`` and ``port`` fields,
     allowing you to build HTTP and other URLs to interact with each container.
 
-.. tip::
-    You can integrate these into a project-specific fixture to return a
-    configured client object, depending on what services your containers expose.
-
-    For example:
-
-    .. code-block:: python
-
-        import pytest
-        import typing
-        from pytest_docker_compose import NetworkInfo
-
-        from my_app import ApiClient
-
-        pytest_plugins = ["docker_compose"]
-
-        @pytest.fixture(name="api_client")
-        def fixture_api_client(
-                docker_network_info: typing.Dict[str, typing.List[NetworkInfo]],
-        ) -> ApiClient:
-            # ``docker_network_info`` is grouped by service name.
-            service = docker_network_info["my_api_service"][0]
-
-            return ApiClient(
-                base_url=f"http://{service.hostname}:{service.port}/api/v1",
-            )
+``docker_project``
+    The ``compose.project.Project`` object that the containers are built from.
+    This fixture is generally only used internally by the plugin.
 
 
-        # Tests can then interact with the API client directly.
-        def test_health_check(api_client: ApiClient):
-            assert api_client.health_check() == {"status": "ok"}
+Waiting for Services to Come Online
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The fixture will wait until every container is up before handing control over to
+the test.
+
+However, just because a container is up does not mean that the services running
+on it are ready to accept incoming requests yet!
+
+If your tests need to wait for a particular condition (for example, to wait for
+an HTTP health check endpoint to send back a 200 response), make sure that your
+fixtures account for this.
+
+Here's a simple example of a fixture that waits for an HTTP service to come
+online before starting each test.
+
+.. code-block:: python
+
+    import pytest
+    import typing
+    from pytest_docker_compose import NetworkInfo
+    from time import sleep, time
+
+    from my_app import ApiClient
+
+    pytest_plugins = ["docker_compose"]
+
+
+    @pytest.fixture(name="api_client")
+    def fixture_api_client(
+            docker_network_info: typing.Dict[str, typing.List[NetworkInfo]],
+    ) -> ApiClient:
+        # ``docker_network_info`` is grouped by service name.
+        service = docker_network_info["my_api_service"][0]
+
+        # Create an instance of our custom application's API client.
+        api_client = ApiClient(
+            base_url=f"http://{service.hostname}:{service.port}/api/v1",
+        )
+
+        # Wait for the HTTP service to be ready.
+        start = time()
+        timeout = 5
+
+        for name, network_info in docker_network_info.items():
+            while True:
+                if time() - start >= timeout:
+                    raise RuntimeError(
+                        f"Unable to start all container services "
+                        "within {timeout} seconds.",
+                    )
+
+                try:
+                    if api_client.health_check()["status"] == "ok":
+                        break
+                except (ConnectionError, KeyError):
+                    pass
+
+                sleep(0.1)
+
+        # HTTP service is up and listening for requests.
+        return api_client
+
+
+    # Tests can then interact with the API client directly.
+    def test_frog_blast_the_vent_core(api_client: ApiClient):
+        assert api_client.frog_blast_the_vent_core() == {
+            "status": "I'm out of ammo!",
+        }
 
 
 Running Integration Tests
@@ -107,55 +149,6 @@ working directory.  You can specify a different file via the
 
     See `Configuration Options`_ for more information on using configuration
     files to modify pytest behavior.
-
-
-Waiting for Services to Come Online
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The fixture will wait until every container is up before handing control over to
-the test.
-
-However, just because a container is up does not mean that the services running
-on it are ready to accept incoming requests yet!
-
-If your tests need to wait for a particular condition (for example, to wait for
-an HTTP health check endpoint to send back a 200 response), define a
-``docker_startup_check`` fixture in your ``conftest.py`` file.
-
-Here's a simple example of a fixture that waits for an HTTP service to come
-online before starting each test.
-
-.. code-block:: python
-
-    import pytest
-    import requests
-    import typing
-    from pytest_docker_compose import NetworkInfo
-    from time import sleep, time
-
-    @pytest.fixture
-    def docker_startup_check
-            docker_network_info: typing.Dict[str, typing.List[NetworkInfo]],
-    ) -> typing.NoReturn:
-        start = time()
-        timeout = 5
-
-        for name, network_info in docker_network_info.items():
-            while True:
-                if time() - start >= timeout:
-                    raise RuntimeError(
-                        f"Unable to start all container services "
-                        "within {timeout} seconds.",
-                    )
-
-                url = f"http://{network_info.hostname}:{network_info.port}/health_check"
-
-                try:
-                    if requests.get(url).status_code == 200:
-                        break
-                except ConnectionError:
-                    pass
-
-                sleep(0.1)
 
 
 .. _Configuration Options: https://docs.pytest.org/en/latest/customize.html#adding-default-options
