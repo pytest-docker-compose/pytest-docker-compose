@@ -36,6 +36,8 @@ activate it manually in the tests that use it:
 
     pytest_plugins = ["docker_compose"]
 
+See `Installing and Using Plugins`_ for more information.
+
 To interact with Docker containers in your tests, use the following fixtures:
 
 ``docker_containers``
@@ -168,4 +170,5 @@ working directory.  You can specify a different file via the
 
 .. _Configuration Options: https://docs.pytest.org/en/latest/customize.html#adding-default-options
 .. _Docker: https://www.docker.com/
+.. _Installing and Using Plugins: https://docs.pytest.org/en/latest/plugins.html#requiring-loading-plugins-in-a-test-module-or-conftest-file
 .. _pytest: https://docs.pytest.org/
