@@ -1,0 +1,6 @@
+# Python bytecode
+*.py[co]
+__pycache__
+
+# setuptools metadata
+/*.egg-info
