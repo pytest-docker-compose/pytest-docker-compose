@@ -43,8 +43,20 @@ To interact with Docker containers in your tests, use the following fixtures:
     A list of ``pytest_docker_compose.NetworkInfo`` objects for each container,
     grouped by service name.
 
-    ``NetworkInfo`` is a namedtuple with ``hostname`` and ``port`` fields,
-    allowing you to build HTTP and other URLs to interact with each container.
+    This information can be used to configure API clients and other objects that
+    will connect to services exposed by the Docker containers in your tests.
+
+    ``NetworkInfo`` is a container with the following fields:
+
+    - ``container_port``: The port (and usually also protocol name) exposed
+      internally to the container.  You can use this value to find the correct
+      port for your test, when the container exposes multiple ports.
+
+    - ``hostname``: The hostname (usually "localhost") to use when connecting to
+      the service from the host.
+
+    - ``host_port``: The port number to use when connecting to the service from
+      the host.
 
 ``docker_project``
     The ``compose.project.Project`` object that the containers are built from.
