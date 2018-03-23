@@ -110,8 +110,6 @@ class DockerComposePlugin:
         """
         Returns hostnames and exposed port numbers for each container,
         so that tests can interact with them.
-
-        Note that
         """
         return {
             container.name: [
