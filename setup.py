@@ -13,5 +13,14 @@ setup(
         "pytest11": [
             "docker_compose=pytest_docker_compose:plugin",
         ],
-    }
+    },
+
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Framework :: Pytest",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3 :: Only",
+        "Topic :: Software Development :: Testing",
+    ],
 )
