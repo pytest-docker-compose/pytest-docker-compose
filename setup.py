@@ -7,7 +7,7 @@ setup(
     author_email="phoenix.zerin@centrality.ai",
     url="https://github.com/Centraliyai/pytest-docker-compose",
     packages=["pytest_docker_compose"],
-    install_requires=["docker-compose", "pytest"],
+    install_requires=["docker-compose", "pytest >= 3.4"],
 
     entry_points={
         "pytest11": [
