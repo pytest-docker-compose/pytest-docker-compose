@@ -1,8 +1,13 @@
 from setuptools import setup
 
+with open("README.rst", "r") as f:
+    long_description = f.read()
+
 setup(
     name="pytest-docker-compose",
-    version="1.0.0",
+    description="Manages Docker containers during your integration tests",
+    long_description=long_description,
+    version="1.0.1",
     author="Phoenix Zerin",
     author_email="phoenix.zerin@centrality.ai",
     url="https://github.com/Centraliyai/pytest-docker-compose",
