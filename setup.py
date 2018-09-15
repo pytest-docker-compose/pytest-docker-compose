@@ -7,7 +7,7 @@ setup(
     name="pytest-docker-compose",
     description="Manages Docker containers during your integration tests",
     long_description=long_description,
-    version="1.0.1",
+    version="1.0.2",
     author="Phoenix Zerin",
     author_email="phoenix.zerin@centrality.ai",
     url="https://github.com/Centraliyai/pytest-docker-compose",
