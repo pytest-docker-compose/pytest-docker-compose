@@ -15,7 +15,7 @@ Make sure you have `Docker`_ installed.
 This plugin has been tested against the following software:
 
 - Python 3.6 and 3.5.
-- pytest 3.4 and 3.5.
+- pytest 3.5 and 3.4.
 
 .. note:: This plugin is **not** compatible with Python 2.
 
