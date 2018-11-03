@@ -92,13 +92,13 @@ running throughout the entire test session:
     import pytest
     from pytest_docker_compose import DockerComposePlugin
 
-    @pytest.fixture(scope="session"):
+    @pytest.fixture(scope="session")
     def session_containers(docker_project):
       containers = DockerComposePlugin._containers_up(docker_project)
       yield containers
       DockerComposePlugin._containers_down(docker_project, containers)
 
-    @pytest.fixture(scope="session"):
+    @pytest.fixture(scope="session")
     def session_network_info(session_containers):
       return DockerComposePlugin._extract_network_info(session_containers)
 
