@@ -72,6 +72,49 @@ To interact with Docker containers in your tests, use the following fixtures:
     This fixture is generally only used internally by the plugin.
 
 
+Fixture Scope
+~~~~~~~~~~~~~
+The ``docker_network_info`` and ``docker_containers`` fixtures use "function"
+scope, meaning that all of the containers are torn down after each individual
+test.
+
+This is done so that every test gets to run in a "clean" environment.
+
+However, this can potentially make a test suite take a very long time to
+complete, so you can declare you own versions of the fixtures with a different
+scope if desired.
+
+Here is an example of creating a fixture that will keep all of the containers
+running throughout the entire test session:
+
+.. code-block:: python
+
+    import pytest
+    from pytest_docker_compose import DockerComposePlugin
+
+    @pytest.fixture(scope="session"):
+    def session_containers(docker_project):
+      containers = DockerComposePlugin._containers_up(docker_project)
+      yield containers
+      DockerComposePlugin._containers_down(docker_project, containers)
+
+    @pytest.fixture(scope="session"):
+    def session_network_info(session_containers):
+      return DockerComposePlugin._extract_network_info(session_containers)
+
+.. caution::
+    Take extra care to ensure that residual data/configuration/files/etc. are
+    cleaned up on all of the containers after each test!
+
+.. danger::
+    This functionality has not been tested extensively, and you may run into
+    strange and/or difficult-to-isolate issues that are unique to your
+    environment/configuration/etc.
+
+    It is strongly recommended that you investigate alternative approaches to
+    improving test performance, for example by using `pytest-xdist`_ to run
+    tests in parallel.
+
 Waiting for Services to Come Online
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The fixture will wait until every container is up before handing control over to
@@ -176,3 +219,4 @@ working directory.  You can specify a different file via the
 .. _Docker: https://www.docker.com/
 .. _Installing and Using Plugins: https://docs.pytest.org/en/latest/plugins.html#requiring-loading-plugins-in-a-test-module-or-conftest-file
 .. _pytest: https://docs.pytest.org/
+.. _pytest-xdist: https://github.com/pytest-dev/pytest-xdist

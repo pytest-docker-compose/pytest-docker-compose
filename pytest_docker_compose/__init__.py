@@ -83,27 +83,11 @@ class DockerComposePlugin:
         This is intentional; stopping the containers destroys local
         storage, so that the next test can start with fresh containers.
         """
-        containers = docker_project.up()  # type: typing.List[Container]
-
-        if not containers:
-            raise ValueError("`docker-compose` didn't launch any containers!")
+        containers = self._containers_up(docker_project)
 
         yield containers
 
-        # Send container logs to stdout, so that they get included in
-        # the test report.
-        # https://docs.pytest.org/en/latest/capture.html
-        for container in sorted(containers, key=lambda c: c.name):
-            header = "Logs from {name}:".format(name=container.name)
-            print(header)
-            print("=" * len(header))
-            print(
-                container.logs().decode("utf-8", errors="replace") or
-                "(no logs)"
-            )
-            print()
-
-        docker_project.down(ImageType.none, False)
+        self._containers_down(docker_project, containers)
 
     @pytest.fixture
     def docker_network_info(self, docker_containers: typing.List[Container]):
@@ -111,25 +95,7 @@ class DockerComposePlugin:
         Returns hostnames and exposed port numbers for each container,
         so that tests can interact with them.
         """
-        return {
-            container.name: [
-                NetworkInfo(
-                    container_port=container_port,
-                    hostname=port_config["HostIp"] or "localhost",
-                    host_port=port_config["HostPort"],
-                )
-
-                # Example::
-                #
-                #   {'8181/tcp': [{'HostIp': '', 'HostPort': '8182'}]}
-                for container_port, port_configs
-                in container.get("HostConfig.PortBindings").items()
-
-                for port_config in port_configs
-            ]
-
-            for container in docker_containers
-        }
+        return self._extract_network_info(docker_containers)
 
     @pytest.fixture(scope="session")
     def docker_project(self, request):
@@ -159,6 +125,72 @@ class DockerComposePlugin:
         project.build()
 
         return project
+
+    @classmethod
+    def _containers_up(cls, docker_project: Project) -> typing.List[Container]:
+        """
+        Brings up all containers in the specified project.
+        """
+        containers = docker_project.up()  # type: typing.List[Container]
+
+        if not containers:
+            raise ValueError("`docker-compose` didn't launch any containers!")
+
+        return containers
+
+    @classmethod
+    def _containers_down(
+            cls,
+            docker_project: Project,
+            docker_containers: typing.Iterable[Container],
+    ) -> None:
+        """
+        Brings down containers that were launched using
+        :py:meth:`_containers_up`.
+        """
+        # Send container logs to stdout, so that they get included in
+        # the test report.
+        # https://docs.pytest.org/en/latest/capture.html
+        for container in sorted(docker_containers, key=lambda c: c.name):
+            header = "Logs from {name}:".format(name=container.name)
+            print(header)
+            print("=" * len(header))
+            print(
+                container.logs().decode("utf-8", errors="replace") or
+                "(no logs)"
+            )
+            print()
+
+        docker_project.down(ImageType.none, False)
+
+    @classmethod
+    def _extract_network_info(
+            cls,
+            docker_containers: typing.Iterable[Container],
+    ) -> typing.Dict[str, typing.List[NetworkInfo]]:
+        """
+        Generates :py:class:`NetworkInfo` instances corresponding to the
+        specified containers.
+        """
+        return {
+            container.name: [
+                NetworkInfo(
+                    container_port=container_port,
+                    hostname=port_config["HostIp"] or "localhost",
+                    host_port=port_config["HostPort"],
+                )
+
+                # Example::
+                #
+                #   {'8181/tcp': [{'HostIp': '', 'HostPort': '8182'}]}
+                for container_port, port_configs
+                in container.get("HostConfig.PortBindings").items()
+
+                for port_config in port_configs
+            ]
+
+            for container in docker_containers
+        }
 
 
 plugin = DockerComposePlugin()
