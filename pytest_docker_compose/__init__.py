@@ -20,18 +20,18 @@ class NetworkInfo:
     Container for info about how to connect to a service exposed by a
     Docker container.
     """
-    container_port: typing.Text
+    container_port = None  # type: typing.Text
     """
     Port (and usually also protocol name) exposed internally on the
     container.
     """
 
-    hostname: typing.Text
+    hostname = None  # type: typing.Text
     """
     Hostname to use when accessing this service.
     """
 
-    host_port: int
+    host_port = None  # type: int
     """
     Port number to use when accessing this service.
     """
@@ -83,7 +83,7 @@ class DockerComposePlugin:
         This is intentional; stopping the containers destroys local
         storage, so that the next test can start with fresh containers.
         """
-        containers: typing.List[Container] = docker_project.up()
+        containers = docker_project.up()  # type: typing.List[Container]
 
         if not containers:
             raise ValueError("`docker-compose` didn't launch any containers!")
@@ -94,7 +94,7 @@ class DockerComposePlugin:
         # the test report.
         # https://docs.pytest.org/en/latest/capture.html
         for container in sorted(containers, key=lambda c: c.name):
-            header = f"Logs from {container.name}:"
+            header = "Logs from {name}:".format(name=container.name)
             print(header)
             print("=" * len(header))
             print(
@@ -146,7 +146,10 @@ class DockerComposePlugin:
 
         if not docker_compose.is_file():
             raise ValueError(
-                f"Unable to find `{docker_compose}` for integration tests.",
+                "Unable to find `{docker_compose}` "
+                "for integration tests.".format(
+                    docker_compose=docker_compose,
+                ),
             )
 
         project = project_from_options(
