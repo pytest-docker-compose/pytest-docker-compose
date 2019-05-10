@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  my_api_service:
+    build: ./a_buildable_container
+    ports:
+      - 5000:5000
+    depends_on:
+      - my_db
+
+  my_db:
+    image: postgres:11.2-alpine
+    ports:
+      - 5432:5432

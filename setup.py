@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.rst", "r") as f:
     long_description = f.read()
@@ -11,7 +11,8 @@ setup(
     author="Phoenix Zerin",
     author_email="phoenix.zerin@centrality.ai",
     url="https://github.com/Centraliyai/pytest-docker-compose",
-    packages=["pytest_docker_compose"],
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
     install_requires=["docker-compose", "pytest >= 3.4"],
 
     entry_points={
