@@ -16,6 +16,7 @@ class ContainerAlreadyExist(Exception):
 __all__ = [
     "DockerComposePlugin",
     "NetworkInfo",
+    "generate_scoped_network_info_fixture",
     "plugin",
 ]
 
@@ -105,30 +106,6 @@ class DockerComposePlugin:
         """
         return self._extract_network_info(docker_containers)
 
-    @pytest.fixture(scope="function")
-    def docker_network_info_function(self, docker_project: Project):
-        containers = self._containers_up(docker_project)
-        yield self._extract_network_info(containers)
-        self._containers_down(docker_project, containers)
-
-    @pytest.fixture(scope="class")
-    def docker_network_info_class(self, docker_project: Project):
-        containers = self._containers_up(docker_project)
-        yield self._extract_network_info(containers)
-        self._containers_down(docker_project, containers)
-
-    @pytest.fixture(scope="module")
-    def docker_network_info_module(self, docker_project: Project):
-        containers = self._containers_up(docker_project)
-        yield self._extract_network_info(containers)
-        self._containers_down(docker_project, containers)
-
-    @pytest.fixture(scope="session")
-    def docker_network_info_session(self, docker_project: Project):
-        containers = self._containers_up(docker_project)
-        yield self._extract_network_info(containers)
-        self._containers_down(docker_project, containers)
-
     @pytest.fixture(scope="session")
     def docker_project(self, request):
         """
@@ -166,11 +143,10 @@ class DockerComposePlugin:
         Brings up all containers in the specified project.
         """
         if any(docker_project.containers()):
-            raise ContainerAlreadyExist(f'pytest-docker-compose tried to '
-                                        f'start containers but there are '
-                                        f'already running containers: '
-                                        f'{docker_project.containers()}, you '
-                                        f'probably scoped your tests wrong')
+            raise ContainerAlreadyExist(
+                f'pytest-docker-compose tried to start containers but there '
+                f'are already running containers: {docker_project.containers()}'
+                f', you probably scoped your tests wrong')
         containers = docker_project.up()  # type: typing.List[Container]
 
         if not containers:
@@ -231,6 +207,15 @@ class DockerComposePlugin:
 
             for container in docker_containers
         }
+
+
+def generate_scoped_network_info_fixture(scope):
+    @pytest.fixture(scope=scope)
+    def scoped_network_info_fixture(docker_project: Project):
+        containers = DockerComposePlugin._containers_up(docker_project)
+        yield DockerComposePlugin._extract_network_info(containers)
+        DockerComposePlugin._containers_down(docker_project, containers)
+    return scoped_network_info_fixture
 
 
 plugin = DockerComposePlugin()

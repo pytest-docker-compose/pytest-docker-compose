@@ -2,8 +2,11 @@ import pytest
 import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+from pytest_docker_compose import generate_scoped_network_info_fixture
 
 pytest_plugins = ["docker_compose"]
+
+docker_network_info_function = generate_scoped_network_info_fixture('function')
 
 
 @pytest.fixture(scope="function")
