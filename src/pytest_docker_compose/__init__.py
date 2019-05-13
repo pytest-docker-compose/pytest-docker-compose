@@ -22,34 +22,17 @@ __all__ = [
 
 
 class NetworkInfo:
-    """
-    Container for info about how to connect to a service exposed by a
-    Docker container.
-    """
-    container_port = None  # type: typing.Text
-    """
-    Port (and usually also protocol name) exposed internally on the
-    container.
-    """
+    def __init__(self, container_port: typing.Text,
+                 hostname: typing.Text, host_port: int,):
+        """
+        Container for info about how to connect to a service exposed by a
+        Docker container.
 
-    hostname = None  # type: typing.Text
-    """
-    Hostname to use when accessing this service.
-    """
-
-    host_port = None  # type: int
-    """
-    Port number to use when accessing this service.
-    """
-
-    def __init__(
-            self,
-            container_port: typing.Text,
-            hostname: typing.Text,
-            host_port: int,
-    ):
-        super().__init__()
-
+        :param container_port: Port (and usually also protocol name) exposed
+        internally on the container.
+        :param hostname: Hostname to use when accessing this service.
+        :param host_port: Port number to use when accessing this service.
+        """
         self.container_port = container_port
         self.hostname = hostname
         self.host_port = host_port
@@ -144,9 +127,9 @@ class DockerComposePlugin:
         """
         if any(docker_project.containers()):
             raise ContainerAlreadyExist(
-                f'pytest-docker-compose tried to start containers but there '
-                f'are already running containers: {docker_project.containers()}'
-                f', you probably scoped your tests wrong')
+                'pytest-docker-compose tried to start containers but there are'
+                ' already running containers: %s, you probably scoped your'
+                ' tests wrong' % docker_project.containers())
         containers = docker_project.up()  # type: typing.List[Container]
 
         if not containers:

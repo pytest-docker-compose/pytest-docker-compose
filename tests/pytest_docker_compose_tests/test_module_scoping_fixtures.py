@@ -18,7 +18,7 @@ def wait_for_api(docker_network_info_module):
     request_session.mount('http://', HTTPAdapter(max_retries=retries))
 
     service = docker_network_info_module["docker_compose_directory_my_api_service_1"][0]
-    api_url = f"http://{service.hostname}:{service.host_port}/"
+    api_url = "http://%s:%s/" % (service.hostname, service.host_port)
     assert request_session.get(api_url)
     return request_session, api_url
 
@@ -28,28 +28,28 @@ def do_an_insert(wait_for_api):
     request_session, api_url = wait_for_api
     item_url = 'items/1'
     data_string = 'some_data'
-    request_session.put(f'{api_url}{item_url}?data_string={data_string}')
+    request_session.put('%s%s?data_string=%s' % (api_url, item_url, data_string))
     return item_url, data_string
 
 
 def test_read_an_item(wait_for_api, do_an_insert):
     request_session, api_url = wait_for_api
     item_url, data_string = do_an_insert
-    item = request_session.get(f'{api_url}{item_url}').json()
+    item = request_session.get(api_url + item_url).json()
     assert item['data'] == data_string
 
 
 def test_read_and_write(wait_for_api):
     request_session, api_url = wait_for_api
     data_string = 'some_other_data'
-    request_session.put(f'{api_url}items/2?data_string={data_string}')
-    item = request_session.get(f'{api_url}items/2').json()
+    request_session.put('%sitems/2?data_string=%s' % (api_url, data_string))
+    item = request_session.get('%sitems/2' % api_url).json()
     assert item['data'] == data_string
 
 
 def test_read_all(wait_for_api):
     request_session, api_url = wait_for_api
-    assert len(request_session.get(f'{api_url}items/all').json()) == 2
+    assert len(request_session.get('%sitems/all' % api_url).json()) == 2
 
 
 if __name__ == '__main__':
