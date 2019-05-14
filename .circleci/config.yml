@@ -1,37 +1,36 @@
 version: 2.1
 jobs:
   build:
-    docker:
-      - image: circleci/python:3.6.1
+    machine: true
     working_directory: ~/repo
     steps:
       - checkout
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "requirements.txt" }}
-            - v1-dependencies-
+            - v2-dependencies-{{ checksum "requirements.txt" }}
+            - v2-dependencies-
       - run:
           name: install dependencies
           command: |
+            pyenv local 3.5.2
             python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
-      - setup_remote_docker:
-          docker_layer_caching: true
+          key: v2-dependencies-{{ checksum "requirements.txt" }}
       - run:
           name: Build Docker images
           command: |
             docker-compose -f ./tests/pytest_docker_compose_tests/docker_compose_directory/docker-compose.yml build
       - run:
           name: install package and run tests
+          # TODO: Move testing over to tox, difficulty is getting python 3.5 and 3.6 to play nice with tox en pyenv
           command: |
             . venv/bin/activate
             pip install .
-            tox
+            pytest --docker-compose ./tests/pytest_docker_compose_tests/docker_compose_directory --docker-compose-no-build
 
   publish:
     docker:
@@ -55,6 +54,4 @@ workflows:
           filters:
             branches:
               only:
-                - master
-
-
+                - gemfury-master
