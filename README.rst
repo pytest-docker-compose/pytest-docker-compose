@@ -24,7 +24,7 @@ Installation
 ------------
 Install the plugin using pip::
 
-    > pip install pytest-docker-compose
+    > pip install pytest-docker-compose-niva
 
 
 Usage

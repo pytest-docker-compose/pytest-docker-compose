@@ -7,6 +7,7 @@ services:
       - 5000:5000
     depends_on:
       - my_db
+    restart: on-failure
 
   my_db:
     image: postgres:11.2-alpine

@@ -4,13 +4,13 @@ with open("README.rst", "r") as f:
     long_description = f.read()
 
 setup(
-    name="pytest-docker-compose",
+    name="pytest-docker-compose-niva",
     description="Manages Docker containers during your integration tests",
     long_description=long_description,
-    version="1.0.3",
-    author="Phoenix Zerin",
-    author_email="phoenix.zerin@centrality.ai",
-    url="https://github.com/Centraliyai/pytest-docker-compose",
+    version="1.1.0",
+    author="Roald Storm",
+    author_email="roaldstorm@gmail.com",
+    url="https://github.com/RmStorm/pytest-docker-compose",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=["docker-compose", "pytest >= 3.4"],
