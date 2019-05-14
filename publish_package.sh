@@ -4,4 +4,4 @@
 VERSION=$(python setup.py --version)
 python setup.py sdist
 
-curl -i -L --fail -F package=@dist/python-docker-compose-niva-${VERSION}.tar.gz https://${FURY_TOKEN}@push.fury.io/niva/
+curl -i -L --fail -F package=@dist/pytest-docker-compose-niva-${VERSION}.tar.gz https://${FURY_TOKEN}@push.fury.io/niva/
