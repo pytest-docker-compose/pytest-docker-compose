@@ -1,0 +1,60 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6.1
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+            - v1-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Build Docker images
+          command: |
+            docker-compose -f ./tests/pytest_docker_compose_tests/docker_compose_directory/docker-compose.yml build
+      - run:
+          name: install package and run tests
+          command: |
+            . venv/bin/activate
+            pip install .
+            tox
+
+  publish:
+    docker:
+      - image: circleci/python:3.6.1
+
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: publish_package
+          command: ./publish_package.sh
+
+workflows:
+  version: 2
+  build_and_publish:
+    jobs:
+      - build
+      - publish:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
+
+
