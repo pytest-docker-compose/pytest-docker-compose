@@ -198,6 +198,11 @@ def generate_scoped_network_info_fixture(scope):
         containers = DockerComposePlugin._containers_up(docker_project)
         yield DockerComposePlugin._extract_network_info(containers)
         DockerComposePlugin._containers_down(docker_project, containers)
+    scoped_network_info_fixture.__wrapped__.__doc__ = """
+        Spins up the containers for the Docker project and returns the
+        hostnames and exposed port numbers for each container. These are
+        scoped to %s
+        """ % scope
     return scoped_network_info_fixture
 
 

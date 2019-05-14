@@ -12,6 +12,7 @@ docker_network_info_module = generate_scoped_network_info_fixture('module')
 
 @pytest.fixture(scope="module")
 def wait_for_api(docker_network_info_module):
+    """Wait for the api from my_api_service to become responsive"""
     request_session = requests.Session()
     retries = Retry(total=5,
                     backoff_factor=0.1,
@@ -26,6 +27,7 @@ def wait_for_api(docker_network_info_module):
 
 @pytest.fixture
 def do_an_insert(wait_for_api):
+    """Insert data to the database in the container my_db"""
     request_session, api_url = wait_for_api
     item_url = 'items/1'
     data_string = 'some_data'

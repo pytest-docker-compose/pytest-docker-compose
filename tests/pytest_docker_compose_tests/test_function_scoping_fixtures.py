@@ -12,6 +12,7 @@ docker_network_info_function = generate_scoped_network_info_fixture('function')
 
 @pytest.fixture(scope="function")
 def wait_for_api(docker_network_info_function):
+    """Wait for the api from my_api_service to become responsive"""
     request_session = requests.Session()
     retries = Retry(total=5,
                     backoff_factor=0.1,
