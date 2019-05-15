@@ -7,7 +7,7 @@ setup(
     name="pytest-docker-compose-niva",
     description="Manages Docker containers during your integration tests",
     long_description=long_description,
-    version="1.1.0",
+    version="2.1.0",
     author="Roald Storm",
     author_email="roaldstorm@gmail.com",
     url="https://github.com/RmStorm/pytest-docker-compose",

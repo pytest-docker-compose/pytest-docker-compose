@@ -3,15 +3,15 @@ import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
-from pytest_docker_compose import generate_scoped_network_info_fixture
+from pytest_docker_compose import generate_scoped_containers_fixture
 
 pytest_plugins = ["docker_compose"]
 
-docker_network_info_module = generate_scoped_network_info_fixture('module')
+module_scoped_containers = generate_scoped_containers_fixture('module')
 
 
 @pytest.fixture(scope="module")
-def wait_for_api(docker_network_info_module):
+def wait_for_api(module_scoped_containers):
     """Wait for the api from my_api_service to become responsive"""
     request_session = requests.Session()
     retries = Retry(total=5,
@@ -19,7 +19,7 @@ def wait_for_api(docker_network_info_module):
                     status_forcelist=[500, 502, 503, 504])
     request_session.mount('http://', HTTPAdapter(max_retries=retries))
 
-    service = docker_network_info_module["docker_compose_directory_my_api_service_1"][0]
+    service = module_scoped_containers["my_network_my_api_service_1"].network_info[0]
     api_url = "http://%s:%s/" % (service.hostname, service.host_port)
     assert request_session.get(api_url)
     return request_session, api_url
@@ -56,4 +56,4 @@ def test_read_all(wait_for_api):
 
 
 if __name__ == '__main__':
-    pytest.main(['--docker-compose', './docker_compose_directory', '--docker-compose-no-build'])
+    pytest.main(['--docker-compose', './my_network', '--docker-compose-no-build'])
