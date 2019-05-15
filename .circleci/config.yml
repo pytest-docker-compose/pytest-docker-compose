@@ -23,14 +23,14 @@ jobs:
       - run:
           name: Build Docker images
           command: |
-            docker-compose -f ./tests/pytest_docker_compose_tests/docker_compose_directory/docker-compose.yml build
+            docker-compose -f ./tests/pytest_docker_compose_tests/my_network/docker-compose.yml build
       - run:
           name: install package and run tests
           # TODO: Move testing over to tox, difficulty is getting python 3.5 and 3.6 to play nice with tox en pyenv
           command: |
             . venv/bin/activate
             pip install .
-            pytest --docker-compose ./tests/pytest_docker_compose_tests/docker_compose_directory --docker-compose-no-build
+            pytest --docker-compose ./tests/pytest_docker_compose_tests/my_network --docker-compose-no-build
 
   publish:
     docker:

@@ -17,6 +17,7 @@ __all__ = [
     "DockerComposePlugin",
     "NetworkInfo",
     "generate_scoped_network_info_fixture",
+    "generate_scoped_containers_fixture",
     "plugin",
 ]
 
@@ -106,7 +107,7 @@ class DockerComposePlugin:
             raise ValueError(
                 "Unable to find `{docker_compose}` "
                 "for integration tests.".format(
-                    docker_compose=docker_compose,
+                    docker_compose=docker_compose.absolute(),
                 ),
             )
 
@@ -137,15 +138,11 @@ class DockerComposePlugin:
 
         return containers
 
-    @classmethod
-    def _containers_down(
-            cls,
-            docker_project: Project,
-            docker_containers: typing.Iterable[Container],
-    ) -> None:
+    @staticmethod
+    def _containers_down(docker_project: Project,
+                         docker_containers: typing.Iterable[Container]) -> None:
         """
-        Brings down containers that were launched using
-        :py:meth:`_containers_up`.
+        Brings down containers that were launched using :py:meth:`_containers_up`.
         """
         # Send container logs to stdout, so that they get included in
         # the test report.
@@ -162,48 +159,46 @@ class DockerComposePlugin:
 
         docker_project.down(ImageType.none, False)
 
-    @classmethod
-    def _extract_network_info(
-            cls,
-            docker_containers: typing.Iterable[Container],
-    ) -> typing.Dict[str, typing.List[NetworkInfo]]:
+    @staticmethod
+    def _extract_network_info(docker_containers: typing.Iterable[Container]) \
+            -> typing.Dict[str, typing.List[NetworkInfo]]:
         """
-        Generates :py:class:`NetworkInfo` instances corresponding to the
-        specified containers.
+        Generates :py:class:`NetworkInfo` instances for each container and
+        returns them in a dict of lists.
         """
-        return {
-            container.name: [
-                NetworkInfo(
-                    container_port=container_port,
-                    hostname=port_config["HostIp"] or "localhost",
-                    host_port=port_config["HostPort"],
-                )
-
-                # Example::
-                #
-                #   {'8181/tcp': [{'HostIp': '', 'HostPort': '8182'}]}
-                for container_port, port_configs
-                in container.get("HostConfig.PortBindings").items()
-
-                for port_config in port_configs
-            ]
-
-            for container in docker_containers
-        }
+        return {container.name: create_network_info_for_container(container)
+                for container in docker_containers}
 
 
-def generate_scoped_network_info_fixture(scope):
+def create_network_info_for_container(container):
+    """
+    Generates :py:class:`NetworkInfo` instances corresponding to all available
+    port bindings in a container
+    """
+    return [NetworkInfo(container_port=container_port,
+                        hostname=port_config["HostIp"] or "localhost",
+                        host_port=port_config["HostPort"],)
+            for container_port, port_configs in
+            container.get("HostConfig.PortBindings").items()
+            for port_config in port_configs]
+
+
+def generate_scoped_containers_fixture(scope):
     @pytest.fixture(scope=scope)
-    def scoped_network_info_fixture(docker_project: Project):
+    def scoped_containers_fixture(docker_project: Project):
         containers = DockerComposePlugin._containers_up(docker_project)
-        yield DockerComposePlugin._extract_network_info(containers)
+        for container in containers:
+            container.network_info = create_network_info_for_container(container)
+        yield {container.name: container for container in containers}
         DockerComposePlugin._containers_down(docker_project, containers)
-    scoped_network_info_fixture.__wrapped__.__doc__ = """
-        Spins up the containers for the Docker project and returns the
-        hostnames and exposed port numbers for each container. These are
-        scoped to %s
+    scoped_containers_fixture.__wrapped__.__doc__ = """
+        Spins up the containers for the Docker project and returns them in a
+        dictionary. Each container has one additional attribute called
+        network_info to simplify accessing the hostnames and exposed port
+        numbers for each container.
+        This set of containers is scoped to '%s'
         """ % scope
-    return scoped_network_info_fixture
+    return scoped_containers_fixture
 
 
 plugin = DockerComposePlugin()
