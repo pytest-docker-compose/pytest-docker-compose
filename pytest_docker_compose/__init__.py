@@ -71,6 +71,9 @@ class DockerComposePlugin:
             help="Path to docker-compose.yml file, or directory containing same.",
         )
 
+        group.addoption("--docker-compose-no-build", action="store_true",
+                        default=False, help="Boolean to not build docker containers")
+
     @pytest.fixture
     def docker_containers(self, docker_project: Project):
         """
@@ -122,7 +125,9 @@ class DockerComposePlugin:
             project_dir=str(docker_compose.parent),
             options={"--file": [docker_compose.name]},
         )
-        project.build()
+
+        if not request.config.getoption("--docker-compose-no-build"):
+            project.build()
 
         return project
 
