@@ -40,6 +40,14 @@ def put_item(item_id: int, data_string: str = "abc'def"):
         return cursor.fetchone()
 
 
+@app.delete("/items/{item_id}")
+def delete_item(item_id: int):
+    with CONNECTION.cursor() as cursor:
+        cursor.execute('DELETE FROM my_table WHERE num=%s RETURNING *;', (item_id, ))
+        CONNECTION.commit()
+        return cursor.fetchone()
+
+
 if __name__ == "__main__":
     try:
         CONNECTION = psycopg2.connect(dbname='postgres', user='postgres', host='my_db', port=5432)

@@ -1,13 +1,10 @@
 import pytest
 import requests
+from urllib.parse import urljoin
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
-from pytest_docker_compose import generate_scoped_containers_fixture
-
 pytest_plugins = ["docker_compose"]
-
-module_scoped_containers = generate_scoped_containers_fixture('module')
 
 
 @pytest.fixture(scope="module")
@@ -32,7 +29,8 @@ def do_an_insert(wait_for_api):
     item_url = 'items/1'
     data_string = 'some_data'
     request_session.put('%s%s?data_string=%s' % (api_url, item_url, data_string))
-    return item_url, data_string
+    yield item_url, data_string
+    request_session.delete(urljoin(api_url, item_url)).json()
 
 
 def test_read_an_item(wait_for_api, do_an_insert):
@@ -46,13 +44,14 @@ def test_read_and_write(wait_for_api):
     request_session, api_url = wait_for_api
     data_string = 'some_other_data'
     request_session.put('%sitems/2?data_string=%s' % (api_url, data_string))
-    item = request_session.get('%sitems/2' % api_url).json()
+    item = request_session.get(urljoin(api_url, 'items/2')).json()
     assert item['data'] == data_string
+    request_session.delete(urljoin(api_url, 'items/2'))
 
 
 def test_read_all(wait_for_api):
     request_session, api_url = wait_for_api
-    assert len(request_session.get('%sitems/all' % api_url).json()) == 2
+    assert len(request_session.get(urljoin(api_url, 'items/all')).json()) == 0
 
 
 if __name__ == '__main__':
