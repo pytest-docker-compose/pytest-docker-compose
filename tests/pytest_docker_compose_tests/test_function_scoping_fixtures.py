@@ -31,15 +31,8 @@ def test_read_and_write(wait_for_api):
     request_session.delete(urljoin(api_url, 'items/2'))
 
 
-def test_read_all(docker_network_info):
-    request_session = requests.Session()
-    retries = Retry(total=5,
-                    backoff_factor=0.1,
-                    status_forcelist=[500, 502, 503, 504])
-    request_session.mount('http://', HTTPAdapter(max_retries=retries))
-
-    service = docker_network_info["my_network_my_api_service_1"][0]
-    api_url = "http://%s:%s/" % (service.hostname, service.host_port)
+def test_read_all(wait_for_api):
+    request_session, api_url = wait_for_api
     assert len(request_session.get(urljoin(api_url, 'items/all')).json()) == 0
 
 

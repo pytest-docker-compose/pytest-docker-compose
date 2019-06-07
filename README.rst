@@ -61,6 +61,17 @@ To interact with Docker containers in your tests, use the following fixtures:
     The ``compose.project.Project`` object that the containers are built from.
     This fixture is generally only used internally by the plugin.
 
+To use the following fixtures please read `Use wider scoped fixtures`_.
+
+``class_scoped_containers``
+    Similar to ``function_scoped_containers`` just with a wider scope.
+
+``module_scoped_containers``
+    Similar to ``function_scoped_containers`` just with a wider scope.
+
+``session_scoped_containers``
+    Similar to ``function_scoped_containers`` just with a wider scope.
+
 Waiting for Services to Come Online
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The fixture will wait until every container is up before handing control over to the test.
@@ -106,15 +117,13 @@ Here's a simple example of a fixture that waits for an HTTP service to come onli
         assert item['data'] == data_string
         request_session.delete(urljoin(api_url, 'items/2'))
 
-Fixture Scope
-~~~~~~~~~~~~~
+Use wider scoped fixtures
+~~~~~~~~~~~~~~~~~~~~~~~~~
 The ``function_scoped_containers`` fixture uses "function" scope, meaning that all of the containers are torn down after each individual test.
 
-This is done so that every test gets to run in a "clean" environment.
+This is done so that every test gets to run in a "clean" environment. However, this can potentially make a test suite take a very long time to complete.
 
-However, this can potentially make a test suite take a very long time to complete.
-
-There are two options to make containers persist beyond a single test. The best way is use the fixtures that are explicitly scoped to different scopes. There are three additional fixtures for this purpose: ``class_scoped_containers``, ``module_scoped_containers`` and ``session_scoped_containers``. Notice that you need to be careful when using these! There are two main caveats to keep in mind:
+There are two options to make containers persist beyond a single test. The best way is to use the fixtures that are explicitly scoped to different scopes. There are three additional fixtures for this purpose: ``class_scoped_containers``, ``module_scoped_containers`` and ``session_scoped_containers``. Notice that you need to be careful when using these! There are two main caveats to keep in mind:
 
 1. Manage your scope correctly, using 'module' scope and 'function' scope in one single file will throw an error! This is because the module scoped fixture will spin up the containers and then the function scoped fixture will try to spin up the containers again. This won't work.
 2. Clean up your environment after each test. Because the containers are not restarted their environments carry the information from previous tests. Therefore you need to be very carefull when designing your tests such that they leave the containers in the same state that it started in or you might run into difficult to understand behaviour.
@@ -133,7 +142,13 @@ during the project creation. If they are not running a warning is given and
 they are spun up anyways. They are then used for all the tests and NOT TORE
 DOWN afterwards.
 
-This mode is best used in combination with the '--docker-compose-no-build' flag since the newly build containers won't be used anyways.
+This mode is best used in combination with the '--docker-compose-no-build' flag since the newly build containers won't be used anyways. like so:
+
+.. code-block:: bash
+
+    pytest --docker-compose-no-build --use-running-containers
+
+It is off course possible to add these options to ``pytest.ini``.
 
 Notice that for this mode the scoping of the fixtures becomes less important since the containers are fully persistent throughout all tests. I only recommend using this if your network takes excessively long to spin up/tear down. It should really be a last resort and you should probably look into speeding up your network instead of using this.
 
