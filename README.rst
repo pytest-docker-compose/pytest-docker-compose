@@ -1,11 +1,8 @@
 pytest-docker-compose
 =====================
-This package contains a `pytest`_ plugin for integrating Docker Compose into
-your automated integration tests.
+This package contains a `pytest`_ plugin for integrating Docker Compose into your automated integration tests.
 
-Given a path to a ``docker-compose.yml`` file, it will automatically build the
-project at the start of the test run, bring the containers up before each test
-starts, and tear them down after each test ends.
+Given a path to a ``docker-compose.yml`` file, it will automatically build the project at the start of the test run, bring the containers up before each test starts, and tear them down after each test ends.
 
 
 Dependencies
@@ -29,8 +26,7 @@ Install the plugin using pip::
 
 Usage
 -----
-For performance reasons, the plugin is not enabled by default, so you must
-activate it manually in the tests that use it:
+For performance reasons, the plugin is not enabled by default, so you must activate it manually in the tests that use it:
 
 .. code-block:: python
 
@@ -40,9 +36,11 @@ See `Installing and Using Plugins`_ for more information.
 
 To interact with Docker containers in your tests, use the following fixtures:
 
-``docker_network_info``
-    A list of ``pytest_docker_compose.NetworkInfo`` objects for each container,
-    grouped by service name.
+``function_scoped_containers``
+    A dictionary of the Docker ``compose.container.Container`` objects
+    running during the test. These containers each have an extra attribute
+    called ``network_info`` added to them. This attribute has a list of
+    ``pytest_docker_compose.NetworkInfo`` objects.
 
     This information can be used to configure API clients and other objects that
     will connect to services exposed by the Docker containers in your tests.
@@ -59,130 +57,86 @@ To interact with Docker containers in your tests, use the following fixtures:
     - ``host_port``: The port number to use when connecting to the service from
       the host.
 
-    .. tip::
-        Unless you need to interface directly with Docker primitives, this is
-        the correct fixture to use in your tests.
-
-``docker_containers``
-    A list of the Docker ``compose.container.Container`` objects running during
-    the test.
-
 ``docker_project``
     The ``compose.project.Project`` object that the containers are built from.
     This fixture is generally only used internally by the plugin.
 
-
-Fixture Scope
-~~~~~~~~~~~~~
-The ``docker_network_info`` and ``docker_containers`` fixtures use "function"
-scope, meaning that all of the containers are torn down after each individual
-test.
-
-This is done so that every test gets to run in a "clean" environment.
-
-However, this can potentially make a test suite take a very long time to
-complete, so you can declare you own versions of the fixtures with a different
-scope if desired.
-
-Here is an example of creating a fixture that will keep all of the containers
-running throughout the entire test session:
-
-.. code-block:: python
-
-    import pytest
-    from pytest_docker_compose import DockerComposePlugin
-
-    @pytest.fixture(scope="session")
-    def session_containers(docker_project):
-      containers = DockerComposePlugin._containers_up(docker_project)
-      yield containers
-      DockerComposePlugin._containers_down(docker_project, containers)
-
-    @pytest.fixture(scope="session")
-    def session_network_info(session_containers):
-      return DockerComposePlugin._extract_network_info(session_containers)
-
-.. caution::
-    Take extra care to ensure that residual data/configuration/files/etc. are
-    cleaned up on all of the containers after each test!
-
-.. danger::
-    This functionality has not been tested extensively, and you may run into
-    strange and/or difficult-to-isolate issues that are unique to your
-    environment/configuration/etc.
-
-    It is strongly recommended that you investigate alternative approaches to
-    improving test performance, for example by using `pytest-xdist`_ to run
-    tests in parallel.
-
 Waiting for Services to Come Online
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The fixture will wait until every container is up before handing control over to
-the test.
+The fixture will wait until every container is up before handing control over to the test.
 
-However, just because a container is up does not mean that the services running
-on it are ready to accept incoming requests yet!
+However, just because a container is up does not mean that the services running on it are ready to accept incoming requests yet!
 
-If your tests need to wait for a particular condition (for example, to wait for
-an HTTP health check endpoint to send back a 200 response), make sure that your
-fixtures account for this.
+If your tests need to wait for a particular condition (for example, to wait for an HTTP health check endpoint to send back a 200 response), make sure that your fixtures account for this.
 
-Here's a simple example of a fixture that waits for an HTTP service to come
-online before starting each test.
+Here's a simple example of a fixture that waits for an HTTP service to come online before starting each test.
 
 .. code-block:: python
 
     import pytest
-    import typing
-    from pytest_docker_compose import NetworkInfo
-    from time import sleep, time
-
-    from my_app import ApiClient
+    import requests
+    from urllib.parse import urljoin
+    from urllib3.util.retry import Retry
+    from requests.adapters import HTTPAdapter
 
     pytest_plugins = ["docker_compose"]
 
 
-    @pytest.fixture(name="api_client")
-    def fixture_api_client(
-            docker_network_info: typing.Dict[str, typing.List[NetworkInfo]],
-    ) -> ApiClient:
-        # ``docker_network_info`` is grouped by service name.
-        service = docker_network_info["my_api_service"][0]
+    @pytest.fixture(scope="function")
+    def wait_for_api(function_scoped_containers):
+        """Wait for the api from my_api_service to become responsive"""
+        request_session = requests.Session()
+        retries = Retry(total=5,
+                        backoff_factor=0.1,
+                        status_forcelist=[500, 502, 503, 504])
+        request_session.mount('http://', HTTPAdapter(max_retries=retries))
 
-        # Create an instance of our custom application's API client.
-        api_client = ApiClient(
-            base_url=f"http://{service.hostname}:{service.host_port}/api/v1",
-        )
-
-        # Wait for the HTTP service to be ready.
-        start = time()
-        timeout = 5
-
-        for name, network_info in docker_network_info.items():
-            while True:
-                if time() - start >= timeout:
-                    raise RuntimeError(
-                        f"Unable to start all container services "
-                        "within {timeout} seconds.",
-                    )
-
-                try:
-                    if api_client.health_check()["status"] == "ok":
-                        break
-                except (ConnectionError, KeyError):
-                    pass
-
-                sleep(0.1)
-
-        # HTTP service is up and listening for requests.
-        return api_client
+        service = function_scoped_containers["my_network_my_api_service_1"].network_info[0]
+        api_url = "http://%s:%s/" % (service.hostname, service.host_port)
+        assert request_session.get(api_url)
+        return request_session, api_url
 
 
-    # Tests can then interact with the API client directly.
-    def test_frog_blast_the_vent_core(api_client: ApiClient):
-        assert api_client.frog_blast_the_vent_core() == {
-            "status": "I'm out of ammo!",
-        }
+    def test_read_and_write(wait_for_api):
+        """The Api is now verified good to go and tests can interact with it"""
+        request_session, api_url = wait_for_api
+        data_string = 'some_data'
+        request_session.put('%sitems/2?data_string=%s' % (api_url, data_string))
+        item = request_session.get(urljoin(api_url, 'items/2')).json()
+        assert item['data'] == data_string
+        request_session.delete(urljoin(api_url, 'items/2'))
+
+Fixture Scope
+~~~~~~~~~~~~~
+The ``function_scoped_containers`` fixture uses "function" scope, meaning that all of the containers are torn down after each individual test.
+
+This is done so that every test gets to run in a "clean" environment.
+
+However, this can potentially make a test suite take a very long time to complete.
+
+There are two options to make containers persist beyond a single test. The best way is use the fixtures that are explicitly scoped to different scopes. There are three additional fixtures for this purpose: ``class_scoped_containers``, ``module_scoped_containers`` and ``session_scoped_containers``. Notice that you need to be careful when using these! There are two main caveats to keep in mind:
+
+1. Manage your scope correctly, using 'module' scope and 'function' scope in one single file will throw an error! This is because the module scoped fixture will spin up the containers and then the function scoped fixture will try to spin up the containers again. This won't work.
+2. Clean up your environment after each test. Because the containers are not restarted their environments carry the information from previous tests. Therefore you need to be very carefull when designing your tests such that they leave the containers in the same state that it started in or you might run into difficult to understand behaviour.
+
+.. caution::
+    Take care to ensure that residual data/configuration/files/etc. are cleaned up on all of the containers after each test when using anything but the function scoped fixture!
+
+The second way is to supply the --use-running-containers flag to pytest like so:
+
+.. code-block:: bash
+
+    pytest --use-running-containers
+
+With this flag, pytest-docker-compose checks that all containers are running
+during the project creation. If they are not running a warning is given and
+they are spun up anyways. They are then used for all the tests and NOT TORE
+DOWN afterwards.
+
+This mode is best used in combination with the '--docker-compose-no-build' flag since the newly build containers won't be used anyways.
+
+Notice that for this mode the scoping of the fixtures becomes less important since the containers are fully persistent throughout all tests. I only recommend using this if your network takes excessively long to spin up/tear down. It should really be a last resort and you should probably look into speeding up your network instead of using this.
+
 
 
 Running Integration Tests
