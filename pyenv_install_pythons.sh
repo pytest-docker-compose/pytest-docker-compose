@@ -1,0 +1,1 @@
+pyenv install 3.6.9 -s

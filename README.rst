@@ -9,13 +9,14 @@ Dependencies
 ------------
 Make sure you have `Docker`_ installed.
 
-This plugin has been tested against the following software:
+This plugin is automatically tested against the following software:
 
-- Python 3.5, 3.6 and 3.7.
+- Python 3.5 and 3.6.
 - pytest 3, 4 and 5.
 
 .. note:: This plugin is **not** compatible with Python 2.
 
+Locally I tested it successfully against Python 3.7 as well but 3.7 proved hard to integrate into circleCI so it's not officially supported.
 
 Installation
 ------------
