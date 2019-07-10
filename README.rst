@@ -11,8 +11,8 @@ Make sure you have `Docker`_ installed.
 
 This plugin has been tested against the following software:
 
-- Python 3.6 and 3.5.
-- pytest 3.5 and 3.4.
+- Python 3.5, 3.6 and 3.7.
+- pytest 3, 4 and 5.
 
 .. note:: This plugin is **not** compatible with Python 2.
 
@@ -21,7 +21,7 @@ Installation
 ------------
 Install the plugin using pip::
 
-    > pip install pytest-docker-compose-niva
+    > pip install pytest-docker-compose
 
 
 Usage
@@ -74,13 +74,13 @@ To use the following fixtures please read `Use wider scoped fixtures`_.
 
 Waiting for Services to Come Online
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The fixture will wait until every container is up before handing control over to the test.
+The fixtures called ``'scope'_scoped_containers`` will wait until every container is up before handing control over to the test.
 
 However, just because a container is up does not mean that the services running on it are ready to accept incoming requests yet!
 
 If your tests need to wait for a particular condition (for example, to wait for an HTTP health check endpoint to send back a 200 response), make sure that your fixtures account for this.
 
-Here's a simple example of a fixture that waits for an HTTP service to come online before starting each test.
+Here's an example of a fixture called ``wait_for_api`` that waits for an HTTP service to come online before a test called ``test_read_and_write`` can run.
 
 .. code-block:: python
 
@@ -125,13 +125,10 @@ This is done so that every test gets to run in a "clean" environment. However, t
 
 There are two options to make containers persist beyond a single test. The best way is to use the fixtures that are explicitly scoped to different scopes. There are three additional fixtures for this purpose: ``class_scoped_containers``, ``module_scoped_containers`` and ``session_scoped_containers``. Notice that you need to be careful when using these! There are two main caveats to keep in mind:
 
-1. Manage your scope correctly, using 'module' scope and 'function' scope in one single file will throw an error! This is because the module scoped fixture will spin up the containers and then the function scoped fixture will try to spin up the containers again. This won't work.
-2. Clean up your environment after each test. Because the containers are not restarted their environments carry the information from previous tests. Therefore you need to be very carefull when designing your tests such that they leave the containers in the same state that it started in or you might run into difficult to understand behaviour.
+1. Manage your scope correctly, using 'module' scope and 'function' scope in one single file will throw an error! This is because the module scoped fixture will spin up the containers and then the function scoped fixture will try to spin up the containers again. Docker compose does not allow you to spin up containers twice.
+2. Clean up your environment after each test. Because the containers are not restarted their environments can carry the information from previous tests. Therefore you need to be very carefull when designing your tests such that they leave the containers in the same state that it started in or you might run into difficult to understand behaviour.
 
-.. caution::
-    Take care to ensure that residual data/configuration/files/etc. are cleaned up on all of the containers after each test when using anything but the function scoped fixture!
-
-The second way is to supply the --use-running-containers flag to pytest like so:
+A second method to make containers persist beyond a single test is to supply the --use-running-containers flag to pytest like so:
 
 .. code-block:: bash
 
@@ -183,6 +180,7 @@ working directory.  You can specify a different file via the
     See `Configuration Options`_ for more information on using configuration
     files to modify pytest behavior.
 
+For more examples on how to use this plugin look at the testing suite of this plugin itself! It will give you some examples for configuring pytest.ini and how to use the different fixtures to run docker containers.
 
 .. _Configuration Options: https://docs.pytest.org/en/latest/customize.html#adding-default-options
 .. _Docker: https://www.docker.com/

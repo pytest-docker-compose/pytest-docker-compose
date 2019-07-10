@@ -4,7 +4,7 @@ with open("README.rst", "r") as f:
     long_description = f.read()
 
 setup(
-    name="pytest-docker-compose-niva",
+    name="pytest-docker-compose",
     description="Manages Docker containers during your integration tests",
     long_description=long_description,
     version="3.0.0",
