@@ -12,7 +12,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            pyenv local 3.5.2
+            pyenv local 3.6.9
             python3 -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
@@ -27,15 +27,10 @@ jobs:
             docker-compose -f ./tests/pytest_docker_compose_tests/my_network/docker-compose.yml build
       - run:
           name: install package and run tests
-          # TODO: Move testing over to tox, difficulty is getting python 3.5 and 3.6 to play nice with tox en pyenv
           command: |
-            . venv/bin/activate
-            pip install .
-            pytest
-            docker-compose -f tests/pytest_docker_compose_tests/my_network/docker-compose.yml up -d
-            pytest --use-running-containers
-            docker-compose -f tests/pytest_docker_compose_tests/my_network/docker-compose.yml down
-            bash -c '! pytest -m should_fail'
+            pip install tox tox-pyenv
+            pyenv local 3.5.7 3.6.9 3.7.4
+            tox
 
   publish:
     docker:
