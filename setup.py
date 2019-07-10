@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.rst", "r") as f:
     long_description = f.read()
@@ -7,11 +7,12 @@ setup(
     name="pytest-docker-compose",
     description="Manages Docker containers during your integration tests",
     long_description=long_description,
-    version="1.0.1",
-    author="Phoenix Zerin",
-    author_email="phoenix.zerin@centrality.ai",
-    url="https://github.com/Centraliyai/pytest-docker-compose",
-    packages=["pytest_docker_compose"],
+    version="2.0.0",
+    author="Roald Storm",
+    author_email="roaldstorm@gmail.com",
+    url="https://github.com/RmStorm/pytest-docker-compose",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
     install_requires=["docker-compose", "pytest >= 3.4"],
 
     entry_points={

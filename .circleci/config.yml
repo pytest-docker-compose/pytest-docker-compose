@@ -1,0 +1,66 @@
+version: 2.1
+jobs:
+  build:
+    machine: true
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v2-dependencies-{{ checksum "requirements.txt" }}
+            - v2-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            pyenv local 3.5.2
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: v2-dependencies-{{ checksum "requirements.txt" }}
+      - run:
+          name: Build Docker images
+          command: |
+            docker-compose -f ./tests/pytest_docker_compose_tests/my_network/docker-compose.yml build
+      - run:
+          name: install package and run tests
+          # TODO: Move testing over to tox, difficulty is getting python 3.5 and 3.6 to play nice with tox en pyenv
+          command: |
+            . venv/bin/activate
+            pip install .
+            pytest
+            docker-compose -f tests/pytest_docker_compose_tests/my_network/docker-compose.yml up -d
+            pytest --use-running-containers
+            docker-compose -f tests/pytest_docker_compose_tests/my_network/docker-compose.yml down
+            bash -c '! pytest -m should_fail'
+
+  publish:
+    docker:
+      - image: circleci/python:3.6.1
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: create packages
+          command: |
+            python setup.py sdist bdist_wheel
+      - run:
+          name: upload to pypi
+          command: |
+            pip install twine
+            twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/*
+
+workflows:
+  version: 2
+  build_and_publish:
+    jobs:
+      - build
+      - publish:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
