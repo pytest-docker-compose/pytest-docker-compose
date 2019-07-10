@@ -32,7 +32,7 @@ jobs:
           name: install package and run tests
           command: |
             pip3 install tox tox-pyenv
-            pyenv local 3.5.2 3.6.9 3.7.4
+            pyenv local 3.5.2 3.6.9
             tox
 
   publish:
