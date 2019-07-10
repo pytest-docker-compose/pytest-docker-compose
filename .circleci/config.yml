@@ -32,7 +32,6 @@ jobs:
             pip install tox tox-pyenv
             pyenv local 3.5.2 3.6.9
             tox
-
   publish:
     docker:
       - image: circleci/python:3.6.1
@@ -46,7 +45,8 @@ jobs:
       - run:
           name: upload to pypi
           command: |
-            pip3 install twine
+            set -o nounset
+            pip install twine
             twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/*
 
 workflows:
