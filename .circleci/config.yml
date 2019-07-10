@@ -6,8 +6,12 @@ jobs:
     steps:
       - checkout
       - run:
-          name: upgrade pyenv
-          command: cd /opt/circleci/.pyenv/plugins/python-build/../.. && git pull && cd -
+          name: upgrade pyenv and openssl requirements
+          command: |
+            cd /opt/circleci/.pyenv/plugins/python-build/../.. && git pull && cd -
+            sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev \
+            libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
+            xz-utils tk-dev libffi-dev liblzma-dev python-openssl git
       - restore_cache:
           keys:
             - v1-pythons-{{ checksum "pyenv_install_pythons.sh" }}
