@@ -34,7 +34,7 @@ jobs:
             tox
   publish:
     docker:
-      - image: circleci/python:3.6.1
+      - image: circleci/python:3.6.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -46,7 +46,7 @@ jobs:
           name: upload to pypi
           command: |
             set -o nounset
-            pip install twine
+            pip install --user twine
             twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/*
 
 workflows:
