@@ -47,6 +47,7 @@ jobs:
           command: |
             set -o nounset
             pip install --user twine
+            PATH=/home/circleci/.local/bin:$PATH
             twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/*
 
 workflows:
