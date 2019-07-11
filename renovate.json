@@ -1,0 +1,6 @@
+{
+  "extends": ["config:base"],
+  "assignees":  ["RmStorm"],
+  "prHourlyLimit": 5,
+  "schedule": ["after 10pm and before 5am on every weekday", "every weekend"]
+}
