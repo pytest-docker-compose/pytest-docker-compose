@@ -48,7 +48,7 @@ def create_network_info_for_container(container):
                         hostname=port_config["HostIp"] or "localhost",
                         host_port=port_config["HostPort"],)
             for container_port, port_configs in
-            container.get("HostConfig.PortBindings").items()
+            container.ports.items()
             for port_config in port_configs]
 
 
@@ -164,9 +164,7 @@ class DockerComposePlugin:
                 if not containers:
                     raise ValueError("`docker-compose` didn't launch any containers!")
 
-            for container in containers:
-                container.network_info = create_network_info_for_container(container)
-            yield {container.name: container for container in containers}
+            yield ContainerDict(docker_project)
 
             for container in sorted(containers, key=lambda c: c.name):
                 header = "Logs from {name}:".format(name=container.name)
@@ -184,6 +182,29 @@ class DockerComposePlugin:
             This set of containers is scoped to '%s'
             """ % scope
         return scoped_containers_fixture
+
+
+class ContainerDict(dict):
+    """A read-only dictionary that re-fetches containers from a docker-compose
+    project dynamically every time they are accessed."""
+
+    def __init__(self, docker_project: Project) -> None:
+        super().__init__()
+        self.docker_project = docker_project
+        for container in docker_project.containers():
+            super().__setitem__(container.name, container)
+
+    def __getitem__(self, key):
+        container = [container for container in self.docker_project.containers()
+                     if container.name == key][0]
+        container.network_info = create_network_info_for_container(container)
+        return container
+
+    def __setitem__(self, k, v) -> None:
+        raise TypeError('ContainerDict does not allow item assignment')
+
+    def __delitem__(self, v) -> None:
+        raise TypeError('ContainerDict does not allow item deletion')
 
 
 plugin = DockerComposePlugin()
