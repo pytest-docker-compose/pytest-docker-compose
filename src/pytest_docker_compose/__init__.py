@@ -1,4 +1,4 @@
-import typing
+from typing import List
 from pathlib import Path
 import warnings
 from datetime import datetime
@@ -23,8 +23,7 @@ __all__ = [
 
 
 class NetworkInfo:
-    def __init__(self, container_port: typing.Text,
-                 hostname: typing.Text, host_port: int,):
+    def __init__(self, container_port: str, hostname: str, host_port: int,):
         """
         Container for info about how to connect to a service exposed by a
         Docker container.
@@ -39,7 +38,7 @@ class NetworkInfo:
         self.host_port = host_port
 
 
-def create_network_info_for_container(container):
+def create_network_info_for_container(container: Container):
     """
     Generates :py:class:`NetworkInfo` instances corresponding to all available
     port bindings in a container
@@ -140,7 +139,7 @@ class DockerComposePlugin:
         return project
 
     @classmethod
-    def generate_scoped_containers_fixture(cls, scope):
+    def generate_scoped_containers_fixture(cls, scope: str):
         """
         Create scoped fixtures that retrieve or spin up all containers, and add
         network info objects to containers and then yield the containers for
@@ -152,21 +151,20 @@ class DockerComposePlugin:
         @pytest.fixture(scope=scope)
         def scoped_containers_fixture(docker_project: Project, request):
             now = datetime.utcnow()
-            if request.config.getoption("--use-running-containers"):
-                containers = docker_project.containers()  # type: typing.List[Container]
-            else:
+            if not request.config.getoption("--use-running-containers"):
                 if any(docker_project.containers()):
                     raise ContainersAlreadyExist(
                         'pytest-docker-compose tried to start containers but there are'
                         ' already running containers: %s, you probably scoped your'
                         ' tests wrong' % docker_project.containers())
-                containers = docker_project.up()  # type: typing.List[Container]
+                containers = docker_project.up()  # type: List[Container]
                 if not containers:
                     raise ValueError("`docker-compose` didn't launch any containers!")
 
-            yield ContainerDict(docker_project)
+            container_dict = ContainerDict(docker_project)
+            yield container_dict
 
-            for container in sorted(containers, key=lambda c: c.name):
+            for container in sorted(container_dict.values(), key=lambda c: c.name):
                 header = "Logs from {name}:".format(name=container.name)
                 print(header, '\n', "=" * len(header))
                 print(container.logs(since=now).decode("utf-8", errors="replace")
@@ -185,16 +183,17 @@ class DockerComposePlugin:
 
 
 class ContainerDict(dict):
-    """A read-only dictionary that re-fetches containers from a docker-compose
-    project dynamically every time they are accessed."""
-
+    """
+    A read-only dictionary that re-fetches containers from a docker-compose
+    project dynamically every time they are accessed.
+    """
     def __init__(self, docker_project: Project) -> None:
         super().__init__()
         self.docker_project = docker_project
         for container in docker_project.containers():
             super().__setitem__(container.name, container)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Container:
         container = [container for container in self.docker_project.containers()
                      if container.name == key][0]
         container.network_info = create_network_info_for_container(container)
