@@ -16,7 +16,7 @@ def wait_for_api(module_scoped_containers):
                     status_forcelist=[500, 502, 503, 504])
     request_session.mount('http://', HTTPAdapter(max_retries=retries))
 
-    service = module_scoped_containers["my_network_my_api_service_1"].network_info[0]
+    service = module_scoped_containers.get("my_api_service").network_info[0]
     api_url = "http://%s:%s/" % (service.hostname, service.host_port)
     assert request_session.get(api_url)
     return request_session, api_url

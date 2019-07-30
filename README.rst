@@ -1,5 +1,8 @@
 pytest-docker-compose
 =====================
+.. image:: https://circleci.com/gh/pytest-docker-compose/pytest-docker-compose/tree/master.svg?style=svg
+    :target: https://circleci.com/gh/pytest-docker-compose/pytest-docker-compose/tree/master
+
 This package contains a `pytest`_ plugin for integrating Docker Compose into your automated integration tests.
 
 Given a path to a ``docker-compose.yml`` file, it will automatically build the project at the start of the test run, bring the containers up before each test starts, and tear them down after each test ends.
@@ -38,10 +41,7 @@ See `Installing and Using Plugins`_ for more information.
 To interact with Docker containers in your tests, use the following fixtures:
 
 ``function_scoped_containers``
-    A dictionary of the Docker ``compose.container.Container`` objects
-    running during the test. These containers each have an extra attribute
-    called ``network_info`` added to them. This attribute has a list of
-    ``pytest_docker_compose.NetworkInfo`` objects.
+    An object that fetches containers of the Docker ``compose.container.Container`` objects running during the test. The containers are fetched using ``function_scoped_containers.get('service_name')`` These containers each have an extra attribute called ``network_info`` added to them. This attribute has a list of ``pytest_docker_compose.NetworkInfo`` objects.
 
     This information can be used to configure API clients and other objects that
     will connect to services exposed by the Docker containers in your tests.
@@ -103,7 +103,7 @@ Here's an example of a fixture called ``wait_for_api`` that waits for an HTTP se
                         status_forcelist=[500, 502, 503, 504])
         request_session.mount('http://', HTTPAdapter(max_retries=retries))
 
-        service = function_scoped_containers["my_network_my_api_service_1"].network_info[0]
+        service = function_scoped_containers.get("my_api_service").network_info[0]
         api_url = "http://%s:%s/" % (service.hostname, service.host_port)
         assert request_session.get(api_url)
         return request_session, api_url

@@ -160,11 +160,13 @@ class DockerComposePlugin:
                 containers = docker_project.up()  # type: List[Container]
                 if not containers:
                     raise ValueError("`docker-compose` didn't launch any containers!")
+            else:
+                containers = docker_project.containers()
 
-            container_dict = ContainerDict(docker_project)
-            yield container_dict
+            container_fetcher = ContainerFetcher(docker_project)
+            yield container_fetcher
 
-            for container in sorted(container_dict.values(), key=lambda c: c.name):
+            for container in sorted(containers, key=lambda c: c.name):
                 header = "Logs from {name}:".format(name=container.name)
                 print(header, '\n', "=" * len(header))
                 print(container.logs(since=now).decode("utf-8", errors="replace")
@@ -182,28 +184,18 @@ class DockerComposePlugin:
         return scoped_containers_fixture
 
 
-class ContainerDict(dict):
+class ContainerFetcher:
     """
-    A read-only dictionary that re-fetches containers from a docker-compose
-    project dynamically every time they are accessed.
+    A class that retrieves containers from the docker project and adds a
+    convenience wrapper for the available ports
     """
     def __init__(self, docker_project: Project) -> None:
-        super().__init__()
         self.docker_project = docker_project
-        for container in docker_project.containers():
-            super().__setitem__(container.name, container)
 
-    def __getitem__(self, key: str) -> Container:
-        container = [container for container in self.docker_project.containers()
-                     if container.name == key][0]
+    def get(self, key: str) -> Container:
+        container = self.docker_project.containers(service_names=[key])[0]
         container.network_info = create_network_info_for_container(container)
         return container
-
-    def __setitem__(self, k, v) -> None:
-        raise TypeError('ContainerDict does not allow item assignment')
-
-    def __delitem__(self, v) -> None:
-        raise TypeError('ContainerDict does not allow item deletion')
 
 
 plugin = DockerComposePlugin()
