@@ -56,10 +56,10 @@ class DockerComposePlugin:
     Integrates docker-compose into pytest integration tests.
     """
     def __init__(self):
-        self.function_scoped_containers = self.generate_scoped_containers_fixture('function')
-        self.class_scoped_containers = self.generate_scoped_containers_fixture('class')
-        self.module_scoped_containers = self.generate_scoped_containers_fixture('module')
-        self.session_scoped_containers = self.generate_scoped_containers_fixture('session')
+        self.function_scoped_container_getter = self.generate_scoped_containers_fixture('function')
+        self.class_scoped_container_getter = self.generate_scoped_containers_fixture('class')
+        self.module_scoped_container_getter = self.generate_scoped_containers_fixture('module')
+        self.session_scoped_container_getter = self.generate_scoped_containers_fixture('session')
 
     # noinspection SpellCheckingInspection
     @staticmethod
@@ -151,20 +151,20 @@ class DockerComposePlugin:
         @pytest.fixture(scope=scope)
         def scoped_containers_fixture(docker_project: Project, request):
             now = datetime.utcnow()
-            if not request.config.getoption("--use-running-containers"):
+            if request.config.getoption("--use-running-containers"):
+                containers = docker_project.containers()  # type: List[Container]
+            else:
                 if any(docker_project.containers()):
                     raise ContainersAlreadyExist(
                         'pytest-docker-compose tried to start containers but there are'
                         ' already running containers: %s, you probably scoped your'
                         ' tests wrong' % docker_project.containers())
-                containers = docker_project.up()  # type: List[Container]
+                containers = docker_project.up()
                 if not containers:
                     raise ValueError("`docker-compose` didn't launch any containers!")
-            else:
-                containers = docker_project.containers()
 
-            container_fetcher = ContainerFetcher(docker_project)
-            yield container_fetcher
+            container_getter = ContainerGetter(docker_project)
+            yield container_getter
 
             for container in sorted(containers, key=lambda c: c.name):
                 header = "Logs from {name}:".format(name=container.name)
@@ -175,16 +175,19 @@ class DockerComposePlugin:
             if not request.config.getoption("--use-running-containers"):
                 docker_project.down(ImageType.none, False)
         scoped_containers_fixture.__wrapped__.__doc__ = """
-            Spins up the containers for the Docker project and returns them in a
-            dictionary. Each container has one additional attribute called
-            network_info to simplify accessing the hostnames and exposed port
-            numbers for each container.
+            Spins up the containers for the Docker project and returns an
+            object that can retrieve the containers. The returned containers
+            all have one additional attribute called network_info to simplify
+            accessing the hostnames and exposed port numbers for each container.
             This set of containers is scoped to '%s'
             """ % scope
         return scoped_containers_fixture
 
 
-class ContainerFetcher:
+plugin = DockerComposePlugin()
+
+
+class ContainerGetter:
     """
     A class that retrieves containers from the docker project and adds a
     convenience wrapper for the available ports
@@ -196,6 +199,3 @@ class ContainerFetcher:
         container = self.docker_project.containers(service_names=[key])[0]
         container.network_info = create_network_info_for_container(container)
         return container
-
-
-plugin = DockerComposePlugin()

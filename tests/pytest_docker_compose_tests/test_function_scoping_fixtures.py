@@ -8,7 +8,7 @@ pytest_plugins = ["docker_compose"]
 
 
 @pytest.fixture(scope="function")
-def wait_for_api(function_scoped_containers):
+def wait_for_api(function_scoped_container_getter):
     """Wait for the api from my_api_service to become responsive"""
     request_session = requests.Session()
     retries = Retry(total=5,
@@ -16,7 +16,7 @@ def wait_for_api(function_scoped_containers):
                     status_forcelist=[500, 502, 503, 504])
     request_session.mount('http://', HTTPAdapter(max_retries=retries))
 
-    service = function_scoped_containers.get("my_api_service").network_info[0]
+    service = function_scoped_container_getter.get("my_api_service").network_info[0]
     api_url = "http://%s:%s/" % (service.hostname, service.host_port)
     assert request_session.get(api_url)
     return request_session, api_url
