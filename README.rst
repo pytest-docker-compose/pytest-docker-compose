@@ -181,6 +181,16 @@ working directory.  You can specify a different file via the
     See `Configuration Options`_ for more information on using configuration
     files to modify pytest behavior.
 
+Remove volumes after tests
+--------------------------
+There is another configuration option that will delete the volumes of containers after running.
+
+.. code-block:: sh
+
+    pytest --docker-compose-remove-volumes
+
+This option will be ignored if the plugin is not used. Again, this option can also be added to the pytest.ini file.
+
 For more examples on how to use this plugin look at the testing suite of this plugin itself! It will give you some examples for configuring pytest.ini and how to use the different fixtures to run docker containers.
 
 .. _Configuration Options: https://docs.pytest.org/en/latest/customize.html#adding-default-options
