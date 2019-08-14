@@ -1,5 +1,8 @@
 pytest-docker-compose
 =====================
+.. image:: https://circleci.com/gh/pytest-docker-compose/pytest-docker-compose/tree/master.svg?style=svg
+    :target: https://circleci.com/gh/pytest-docker-compose/pytest-docker-compose/tree/master
+
 This package contains a `pytest`_ plugin for integrating Docker Compose into your automated integration tests.
 
 Given a path to a ``docker-compose.yml`` file, it will automatically build the project at the start of the test run, bring the containers up before each test starts, and tear them down after each test ends.
@@ -37,11 +40,8 @@ See `Installing and Using Plugins`_ for more information.
 
 To interact with Docker containers in your tests, use the following fixtures:
 
-``function_scoped_containers``
-    A dictionary of the Docker ``compose.container.Container`` objects
-    running during the test. These containers each have an extra attribute
-    called ``network_info`` added to them. This attribute has a list of
-    ``pytest_docker_compose.NetworkInfo`` objects.
+``function_scoped_container_getter``
+    An object that fetches containers of the Docker ``compose.container.Container`` objects running during the test. The containers are fetched using ``function_scoped_container_getter.get('service_name')`` These containers each have an extra attribute called ``network_info`` added to them. This attribute has a list of ``pytest_docker_compose.NetworkInfo`` objects.
 
     This information can be used to configure API clients and other objects that
     will connect to services exposed by the Docker containers in your tests.
@@ -64,18 +64,18 @@ To interact with Docker containers in your tests, use the following fixtures:
 
 To use the following fixtures please read `Use wider scoped fixtures`_.
 
-``class_scoped_containers``
-    Similar to ``function_scoped_containers`` just with a wider scope.
+``class_scoped_container_getter``
+    Similar to ``function_scoped_container_getter`` just with a wider scope.
 
-``module_scoped_containers``
-    Similar to ``function_scoped_containers`` just with a wider scope.
+``module_scoped_container_getter``
+    Similar to ``function_scoped_container_getter`` just with a wider scope.
 
-``session_scoped_containers``
-    Similar to ``function_scoped_containers`` just with a wider scope.
+``session_scoped_container_getter``
+    Similar to ``function_scoped_container_getter`` just with a wider scope.
 
 Waiting for Services to Come Online
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The fixtures called ``'scope'_scoped_containers`` will wait until every container is up before handing control over to the test.
+The fixtures called ``'scope'_scoped_container_getter`` will wait until every container is up before handing control over to the test.
 
 However, just because a container is up does not mean that the services running on it are ready to accept incoming requests yet!
 
@@ -95,7 +95,7 @@ Here's an example of a fixture called ``wait_for_api`` that waits for an HTTP se
 
 
     @pytest.fixture(scope="function")
-    def wait_for_api(function_scoped_containers):
+    def wait_for_api(function_scoped_container_getter):
         """Wait for the api from my_api_service to become responsive"""
         request_session = requests.Session()
         retries = Retry(total=5,
@@ -103,7 +103,7 @@ Here's an example of a fixture called ``wait_for_api`` that waits for an HTTP se
                         status_forcelist=[500, 502, 503, 504])
         request_session.mount('http://', HTTPAdapter(max_retries=retries))
 
-        service = function_scoped_containers["my_network_my_api_service_1"].network_info[0]
+        service = function_scoped_container_getter.get("my_api_service").network_info[0]
         api_url = "http://%s:%s/" % (service.hostname, service.host_port)
         assert request_session.get(api_url)
         return request_session, api_url
@@ -120,11 +120,11 @@ Here's an example of a fixture called ``wait_for_api`` that waits for an HTTP se
 
 Use wider scoped fixtures
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-The ``function_scoped_containers`` fixture uses "function" scope, meaning that all of the containers are torn down after each individual test.
+The ``function_scoped_container_getter`` fixture uses "function" scope, meaning that all of the containers are torn down after each individual test.
 
 This is done so that every test gets to run in a "clean" environment. However, this can potentially make a test suite take a very long time to complete.
 
-There are two options to make containers persist beyond a single test. The best way is to use the fixtures that are explicitly scoped to different scopes. There are three additional fixtures for this purpose: ``class_scoped_containers``, ``module_scoped_containers`` and ``session_scoped_containers``. Notice that you need to be careful when using these! There are two main caveats to keep in mind:
+There are two options to make containers persist beyond a single test. The best way is to use the fixtures that are explicitly scoped to different scopes. There are three additional fixtures for this purpose: ``class_scoped_container_getter``, ``module_scoped_container_getter`` and ``session_scoped_container_getter``. Notice that you need to be careful when using these! There are two main caveats to keep in mind:
 
 1. Manage your scope correctly, using 'module' scope and 'function' scope in one single file will throw an error! This is because the module scoped fixture will spin up the containers and then the function scoped fixture will try to spin up the containers again. Docker compose does not allow you to spin up containers twice.
 2. Clean up your environment after each test. Because the containers are not restarted their environments can carry the information from previous tests. Therefore you need to be very carefull when designing your tests such that they leave the containers in the same state that it started in or you might run into difficult to understand behaviour.
