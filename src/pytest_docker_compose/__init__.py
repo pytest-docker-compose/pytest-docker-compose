@@ -78,6 +78,9 @@ class DockerComposePlugin:
             help="Path to docker-compose.yml file, or directory containing same.",
         )
 
+        group.addoption("--docker-compose-remove-volumes", action="store_true",
+                        default=False, help="Remove docker container volumes after tests")
+
         group.addoption("--docker-compose-no-build", action="store_true",
                         default=False, help="Boolean to not build docker containers")
 
@@ -173,7 +176,8 @@ class DockerComposePlugin:
                       or "(no logs)", '\n')
 
             if not request.config.getoption("--use-running-containers"):
-                docker_project.down(ImageType.none, False)
+                docker_project.down(ImageType.none, request.config.getoption("--docker-compose-remove-volumes"))
+
         scoped_containers_fixture.__wrapped__.__doc__ = """
             Spins up the containers for the Docker project and returns an
             object that can retrieve the containers. The returned containers
