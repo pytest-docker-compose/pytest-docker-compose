@@ -88,6 +88,9 @@ class DockerComposePlugin:
                         default=False, help="Boolean to use a running set of containers "
                                             "instead of calling 'docker-compose up'")
 
+        group.addoption("--disable-logs-output", action="store_true",
+                        default=False, help="Boolean to not print the logs of each container after tests")
+
     @pytest.fixture(scope="session")
     def docker_project(self, request):
         """
@@ -169,11 +172,12 @@ class DockerComposePlugin:
             container_getter = ContainerGetter(docker_project)
             yield container_getter
 
-            for container in sorted(containers, key=lambda c: c.name):
-                header = "Logs from {name}:".format(name=container.name)
-                print(header, '\n', "=" * len(header))
-                print(container.logs(since=now).decode("utf-8", errors="replace")
-                      or "(no logs)", '\n')
+            if not request.config.getoption("--disable-logs-output"):
+                for container in sorted(containers, key=lambda c: c.name):
+                    header = "Logs from {name}:".format(name=container.name)
+                    print(header, '\n', "=" * len(header))
+                    print(container.logs(since=now).decode("utf-8", errors="replace")
+                          or "(no logs)", '\n')
 
             if not request.config.getoption("--use-running-containers"):
                 docker_project.down(ImageType.none, request.config.getoption("--docker-compose-remove-volumes"))
