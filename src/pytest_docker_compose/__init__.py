@@ -169,11 +169,12 @@ class DockerComposePlugin:
             container_getter = ContainerGetter(docker_project)
             yield container_getter
 
-            for container in sorted(containers, key=lambda c: c.name):
-                header = "Logs from {name}:".format(name=container.name)
-                print(header, '\n', "=" * len(header))
-                print(container.logs(since=now).decode("utf-8", errors="replace")
-                      or "(no logs)", '\n')
+            if request.config.getoption("--verbose"):
+                for container in sorted(containers, key=lambda c: c.name):
+                    header = "Logs from {name}:".format(name=container.name)
+                    print(header, '\n', "=" * len(header))
+                    print(container.logs(since=now).decode("utf-8", errors="replace")
+                          or "(no logs)", '\n')
 
             if not request.config.getoption("--use-running-containers"):
                 docker_project.down(ImageType.none, request.config.getoption("--docker-compose-remove-volumes"))
