@@ -88,9 +88,6 @@ class DockerComposePlugin:
                         default=False, help="Boolean to use a running set of containers "
                                             "instead of calling 'docker-compose up'")
 
-        group.addoption("--disable-logs-output", action="store_true",
-                        default=False, help="Boolean to not print the logs of each container after tests")
-
     @pytest.fixture(scope="session")
     def docker_project(self, request):
         """
@@ -172,7 +169,7 @@ class DockerComposePlugin:
             container_getter = ContainerGetter(docker_project)
             yield container_getter
 
-            if not request.config.getoption("--disable-logs-output"):
+            if request.config.getoption("--verbose"):
                 for container in sorted(containers, key=lambda c: c.name):
                     header = "Logs from {name}:".format(name=container.name)
                     print(header, '\n', "=" * len(header))
