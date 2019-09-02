@@ -38,13 +38,12 @@ For performance reasons, the plugin is not enabled by default, so you must activ
 
 See `Installing and Using Plugins`_ for more information.
 
-To interact with Docker containers in your tests, use the following fixtures:
+To interact with Docker containers in your tests, use the following fixtures, these fixtures tell docker-compose to start all the services and then they can fetch the associated containers for use in a test:
 
 ``function_scoped_container_getter``
     An object that fetches containers of the Docker ``compose.container.Container`` objects running during the test. The containers are fetched using ``function_scoped_container_getter.get('service_name')`` These containers each have an extra attribute called ``network_info`` added to them. This attribute has a list of ``pytest_docker_compose.NetworkInfo`` objects.
 
-    This information can be used to configure API clients and other objects that
-    will connect to services exposed by the Docker containers in your tests.
+    This information can be used to configure API clients and other objects that will connect to services exposed by the Docker containers in your tests.
 
     ``NetworkInfo`` is a container with the following fields:
 
@@ -93,7 +92,7 @@ Here's an example of a fixture called ``wait_for_api`` that waits for an HTTP se
 
     pytest_plugins = ["docker_compose"]
 
-
+    # Invoking this fixture: 'function_scoped_container_getter' starts all services
     @pytest.fixture(scope="function")
     def wait_for_api(function_scoped_container_getter):
         """Wait for the api from my_api_service to become responsive"""
