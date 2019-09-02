@@ -43,12 +43,16 @@ def create_network_info_for_container(container: Container):
     Generates :py:class:`NetworkInfo` instances corresponding to all available
     port bindings in a container
     """
+    # If ports are exposed by the docker container but not by docker expose
+    # container.ports looks like this:
+    # container.ports == {'4369/tcp': None,
+    # '5984/tcp': [{'HostIp': '0.0.0.0', 'HostPort': '32872'}],
+    # '9100/tcp': None}
     return [NetworkInfo(container_port=container_port,
                         hostname=port_config["HostIp"] or "localhost",
                         host_port=port_config["HostPort"],)
-            for container_port, port_configs in
-            container.ports.items()
-            for port_config in port_configs]
+            for container_port, port_configs in container.ports.items()
+            if port_configs is not None for port_config in port_configs]
 
 
 class DockerComposePlugin:
