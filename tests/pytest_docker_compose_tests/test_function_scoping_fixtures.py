@@ -1,8 +1,9 @@
-import pytest
 import requests
 from urllib.parse import urljoin
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+
+import pytest
 
 pytest_plugins = ["docker_compose"]
 

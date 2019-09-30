@@ -205,6 +205,12 @@ class ContainerGetter:
         self.docker_project = docker_project
 
     def get(self, key: str) -> Container:
-        container = self.docker_project.containers(service_names=[key])[0]
+        containers = self.docker_project.containers(service_names=[key])
+        if not containers:
+            warnings.warn(UserWarning(
+                "The service %s has no running containers containers" % key
+            ))
+            return []
+        container = containers[0]
         container.network_info = create_network_info_for_container(container)
         return container
