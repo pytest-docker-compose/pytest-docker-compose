@@ -23,7 +23,7 @@ def wait_for_api(module_scoped_container_getter):
     assert request_session.get(api_url)
 
     start = time.time()
-    while module_scoped_container_getter.get("my_short_lived_service"):
+    while 'Exit' not in module_scoped_container_getter.get("my_short_lived_service").human_readable_state:
         if time.time() - start >= 5:
             raise RuntimeError(
                 'my_short_lived_service should spin up, echo "Echoing" and '
