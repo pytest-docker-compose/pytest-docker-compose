@@ -1,6 +1,11 @@
 version: '3'
 
 services:
+  my_service_without_containers:
+    build: ./a_buildable_container
+    entrypoint: /bin/echo
+    command: "Echoing"
+
   my_api_service:
     build: ./a_buildable_container
     ports:

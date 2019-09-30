@@ -19,6 +19,8 @@ def wait_for_api(module_scoped_container_getter):
     service = module_scoped_container_getter.get("my_api_service").network_info[0]
     api_url = "http://%s:%s/" % (service.hostname, service.host_port)
     assert request_session.get(api_url)
+    # The container that only echoes should have run and disappeared by now:
+    assert not module_scoped_container_getter.get("my_service_without_containers")
     return request_session, api_url
 
 
