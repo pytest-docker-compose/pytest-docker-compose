@@ -1,8 +1,10 @@
-import pytest
+import time
 import requests
 from urllib.parse import urljoin
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+
+import pytest
 
 pytest_plugins = ["docker_compose"]
 
@@ -19,8 +21,15 @@ def wait_for_api(module_scoped_container_getter):
     service = module_scoped_container_getter.get("my_api_service").network_info[0]
     api_url = "http://%s:%s/" % (service.hostname, service.host_port)
     assert request_session.get(api_url)
-    # The container that only echoes should have run and disappeared by now:
-    assert not module_scoped_container_getter.get("my_service_without_containers")
+
+    start = time.time()
+    while module_scoped_container_getter.get("my_short_lived_service"):
+        if time.time() - start >= 5:
+            raise RuntimeError(
+                'my_short_lived_service should spin up, echo "Echoing" and '
+                'then shut down, since it still running something went wrong'
+            )
+        time.sleep(.5)
     return request_session, api_url
 
 
