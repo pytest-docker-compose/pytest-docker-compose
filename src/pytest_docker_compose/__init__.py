@@ -205,6 +205,13 @@ class ContainerGetter:
         self.docker_project = docker_project
 
     def get(self, key: str) -> Container:
-        container = self.docker_project.containers(service_names=[key])[0]
+        containers = self.docker_project.containers(service_names=[key])
+        if not containers:
+            containers = self.docker_project.containers(service_names=[key], stopped=True)
+            warnings.warn(UserWarning(
+                "The service '%s' only has a stopped container, "
+                "it stopped with '%s'" % (key, containers[0].human_readable_state)
+            ))
+        container = containers[0]
         container.network_info = create_network_info_for_container(container)
         return container

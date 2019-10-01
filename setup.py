@@ -7,13 +7,13 @@ setup(
     name="pytest-docker-compose",
     description="Manages Docker containers during your integration tests",
     long_description=long_description,
-    version="3.1.1",
+    version="3.1.2",
     author="Roald Storm",
     author_email="roaldstorm@gmail.com",
     url="https://github.com/pytest-docker-compose/pytest-docker-compose",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    install_requires=["docker-compose", "pytest >= 3.4"],
+    install_requires=["docker-compose", "pytest >= 3.3"],
 
     entry_points={
         "pytest11": [
