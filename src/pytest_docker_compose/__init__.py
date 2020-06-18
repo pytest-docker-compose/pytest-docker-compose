@@ -1,4 +1,5 @@
 from typing import List
+import os.path
 from pathlib import Path
 import warnings
 from datetime import datetime
@@ -100,22 +101,36 @@ class DockerComposePlugin:
         Returns the project instance, which can be used to start and stop
         the Docker containers.
         """
-        docker_compose = Path(request.config.getoption("docker_compose"))
 
-        if docker_compose.is_dir():
-            docker_compose /= "docker-compose.yml"
+        compose_files = []
 
-        if not docker_compose.is_file():
-            raise ValueError(
-                "Unable to find `{docker_compose}` "
-                "for integration tests.".format(
-                    docker_compose=docker_compose.absolute(),
-                ),
-            )
+        for docker_compose in [Path(f) for f in request.config.getoption("docker_compose").split(',')]:
+            if docker_compose.is_dir():
+                docker_compose /= "docker-compose.yml"
+
+            if not docker_compose.is_file():
+                raise ValueError(
+                    "Unable to find `{docker_compose}` "
+                    "for integration tests.".format(
+                        docker_compose=docker_compose.absolute(),
+                    ),
+                )
+
+            compose_files.append(docker_compose)
+
+        if len(compose_files) > 1:
+            # py35 needs strings for os.path functions
+            project_dir = os.path.commonpath([str(f) for f in compose_files]) or '.'
+            compose_files = [p.relative_to(project_dir) for p in compose_files]
+        else:
+            project_dir = '.'
+
+        # py35 needs strings for os.path functions
+        compose_files = map(str, compose_files)
 
         project = project_from_options(
-            project_dir=str(docker_compose.parent),
-            options={"--file": [docker_compose.name]},
+            project_dir=str(project_dir),
+            options={"--file": compose_files},
         )
 
         if not request.config.getoption("--docker-compose-no-build"):
