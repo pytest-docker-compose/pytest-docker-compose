@@ -155,7 +155,7 @@ class DockerComposePlugin:
         After the tests wrap up the fixture prints the logs of each containers
         and tears them down unless '--use-running-containers' was supplied.
         """
-        @pytest.fixture(scope=scope)
+        @pytest.fixture(scope=scope)  # type: ignore
         def scoped_containers_fixture(docker_project: Project, request):
             now = datetime.utcnow()
             if request.config.getoption("--use-running-containers"):
