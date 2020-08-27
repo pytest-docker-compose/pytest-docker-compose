@@ -34,7 +34,7 @@ jobs:
             tox
   publish:
     docker:
-      - image: circleci/python:3.8.0b1
+      - image: circleci/python:3.8.5
     working_directory: ~/repo
     steps:
       - checkout
