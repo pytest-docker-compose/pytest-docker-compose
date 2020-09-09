@@ -167,6 +167,12 @@ working directory.  You can specify a different file via the
 
     pytest --docker-compose=/path/to/docker-compose.yml
 
+To specify more than one compose file, separate them with a ``,``:
+
+.. code-block:: sh
+
+    pytest --docker-compose=/path/to/docker-compose.yml,/another/docker-compose.yml,/third/docker-compose.yml
+
 .. tip::
     Alternatively, you can specify this option in your ``pytest.ini`` file:
 
