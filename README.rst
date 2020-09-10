@@ -167,7 +167,7 @@ working directory.  You can specify a different file via the
 
     pytest --docker-compose=/path/to/docker-compose.yml
 
-To specify more than one compose file, separate them with a ``,``:
+Docker compose allows for specifying multiple compose files as described in the `docs here <https://docs.docker.com/compose/extends/>`_. To specify more than one compose file, separate them with a ``,``:
 
 .. code-block:: sh
 
