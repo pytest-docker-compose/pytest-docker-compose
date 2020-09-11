@@ -1,4 +1,7 @@
+import requests
 from urllib.parse import urljoin
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 
 import pytest
 
@@ -26,4 +29,4 @@ def test_read_all(wait_for_api):
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main([])
