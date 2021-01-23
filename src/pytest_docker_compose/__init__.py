@@ -126,7 +126,7 @@ class DockerComposePlugin:
             project_dir = '.'
 
         # py35 needs strings for os.path functions
-        compose_files = map(str, compose_files)
+        compose_files = [str(p) for p in compose_files]
 
         project = project_from_options(
             project_dir=str(project_dir),
