@@ -126,6 +126,8 @@ class DockerComposePlugin:
             project_dir = '.'
 
         # py35 needs strings for os.path functions
+        # Must be a list; will get accessed multiple times.
+        # https://github.com/pytest-docker-compose/pytest-docker-compose/pull/72
         compose_files = [str(p) for p in compose_files]
 
         project = project_from_options(
