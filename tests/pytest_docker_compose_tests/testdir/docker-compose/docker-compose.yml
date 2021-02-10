@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  my_api_service:
+    build: ./another_buildable_container
+    ports:
+      - "5010:5010"
+    depends_on:
+      - my_db
+    restart: on-failure
+
+  my_db:
+    image: postgres:11.5-alpine
+    ports:
+      - "5442:5432"
+
+  my_short_lived_service:
+    build: ./another_buildable_container
+    entrypoint: /bin/echo
+    command: "Echoing"

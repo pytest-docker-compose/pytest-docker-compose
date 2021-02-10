@@ -14,12 +14,10 @@ Make sure you have `Docker`_ installed.
 
 This plugin is automatically tested against the following software:
 
-- Python 3.5 and 3.6.
-- pytest 3, 4 and 5.
+- Python 3.5, 3.6, 3.7, 3.8 and 3.9.
+- pytest 3, 4, 5 and 6.
 
 .. note:: This plugin is **not** compatible with Python 2.
-
-Locally I tested it successfully against Python 3.7 as well but 3.7 proved hard to integrate into circleCI so it's not officially supported.
 
 Installation
 ------------
@@ -57,8 +55,8 @@ To interact with Docker containers in your tests, use the following fixtures, th
     - ``host_port``: The port number to use when connecting to the service from
       the host.
 
-``docker_project``
-    The ``compose.project.Project`` object that the containers are built from.
+``all_docker_projects``
+    Dict of ``compose.project.Project`` objects that the containers are built from.
     This fixture is generally only used internally by the plugin.
 
 To use the following fixtures please read `Use wider scoped fixtures`_.
@@ -117,6 +115,16 @@ Here's an example of a fixture called ``wait_for_api`` that waits for an HTTP se
         assert item['data'] == data_string
         request_session.delete(urljoin(api_url, 'items/2'))
 
+Note that ``*_container_getter.get`` function automatically waits for the container to be in Running state. You may adjust the
+timeout with `timeout` argument, which is 15 seconds by default, or disable the wait with `wait_running` argument.
+
+.. code-block:: python
+    function_scoped_container_getter.get("my_api_service", timeout=5)
+    function_scoped_container_getter.get("my_api_service", wait_running=False)
+
+When ``wait_running`` is set to `False`, `network_info` property is not available, even if the container is actually
+running.
+
 Use wider scoped fixtures
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 The ``function_scoped_container_getter`` fixture uses "function" scope, meaning that all of the containers are torn down after each individual test.
@@ -167,11 +175,11 @@ working directory.  You can specify a different file via the
 
     pytest --docker-compose=/path/to/docker-compose.yml
 
-Docker compose allows for specifying multiple compose files as described in the `docs here <https://docs.docker.com/compose/extends/>`_. To specify more than one compose file, separate them with a ``,``:
+Docker compose allows for specifying multiple compose files as described in the `docs here <https://docs.docker.com/compose/extends/>`_. To specify more than one compose file, use ``--docker-compose`` option multiple times:
 
 .. code-block:: sh
 
-    pytest --docker-compose=/path/to/docker-compose.yml,/another/docker-compose.yml,/third/docker-compose.yml
+    pytest --docker-compose=/path/to/docker-compose.yml --docker-compose=/another/docker-compose.yml --docker-compose=/third/docker-compose.yml
 
 .. tip::
     Alternatively, you can specify this option in your ``pytest.ini`` file:
