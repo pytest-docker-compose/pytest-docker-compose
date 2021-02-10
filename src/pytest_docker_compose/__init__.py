@@ -92,8 +92,17 @@ class DockerComposePlugin:
         group.addoption("--use-running-containers", action="store_true",
                         default=False, help="Boolean to use a running set of containers "
                                             "instead of calling 'docker-compose up'")
+        group.addoption(
+            "--docker-compose-project-scope",
+            dest="project_scope",
+            default="session",
+            help="Scope to apply to project-scope",
+        )
 
-    @pytest.fixture(scope="session")
+    def determine_scope(fixture_name, config):
+        return config.getoption("project_scope")
+
+    @pytest.fixture(scope=determine_scope)
     def docker_project(self, request):
         """
         Builds the Docker project if necessary, once per session.
