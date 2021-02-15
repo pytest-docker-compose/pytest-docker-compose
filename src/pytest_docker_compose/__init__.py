@@ -93,6 +93,10 @@ class DockerComposePlugin:
                         default=False, help="Boolean to use a running set of containers "
                                             "instead of calling 'docker-compose up'")
 
+        group.addoption("--docker-compose-service-names", action="store",
+                        default="", help="List of services to start (comma-separated)")
+
+
     @pytest.fixture(scope="session")
     def docker_project(self, request):
         """
@@ -146,7 +150,7 @@ class DockerComposePlugin:
                     "containers won't be used if there are already "
                     "containers running!"))
             current_containers = project.containers()
-            containers = project.up()
+            containers = self._launch_containers(project=project, request=request)
             if not set(current_containers) == set(containers):
                 warnings.warn(UserWarning(
                     "You used the '--use-running-containers' but "
@@ -183,7 +187,7 @@ class DockerComposePlugin:
                         'pytest-docker-compose tried to start containers but there are'
                         ' already running containers: %s, you probably scoped your'
                         ' tests wrong' % docker_project.containers())
-                containers = docker_project.up()
+                containers = cls._launch_containers(project=docker_project, request=request)
                 if not containers:
                     raise ValueError("`docker-compose` didn't launch any containers!")
 
@@ -208,6 +212,12 @@ class DockerComposePlugin:
             This set of containers is scoped to '%s'
             """ % scope
         return scoped_containers_fixture
+
+    @classmethod
+    def _launch_containers(cls, project: Project, request):
+        service_names = request.config.getoption("--docker-compose-service-names")
+        service_names = None if service_names == "" else service_names.split(",")
+        return project.up(service_names=service_names)
 
 
 plugin = DockerComposePlugin()
