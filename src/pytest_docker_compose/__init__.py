@@ -152,7 +152,7 @@ class DockerComposePlugin:
             current_containers = project.containers(service_names=service_names)
             containers = project.up(service_names=service_names)
 
-            if not set(current_containers) == set(containers):
+            if not set(current_containers).issubset(set(containers)):
                 warnings.warn(UserWarning(
                     "You used the '--use-running-containers' but "
                     "pytest-docker-compose could not find all containers "
