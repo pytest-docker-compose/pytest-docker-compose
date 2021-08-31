@@ -3,6 +3,8 @@ version: '3'
 services:
   my_api_service:
     build: ./a_buildable_container
+    environment:
+      - TEST_ENV_VAR
     ports:
       - "5000:5000"
     depends_on:

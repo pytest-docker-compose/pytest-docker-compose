@@ -93,6 +93,10 @@ class DockerComposePlugin:
                         default=False, help="Boolean to use a running set of containers "
                                             "instead of calling 'docker-compose up'")
 
+        group.addoption(
+            "--docker-compose-env-file",
+            help="Env file path for docker-compose instead of --env-file")
+
     @pytest.fixture(scope="session")
     def docker_project(self, request):
         """
@@ -130,9 +134,14 @@ class DockerComposePlugin:
         # https://github.com/pytest-docker-compose/pytest-docker-compose/pull/72
         compose_files = [str(p) for p in compose_files]
 
+        project_options = {"--file": compose_files}
+
+        if request.config.getoption("--docker-compose-env-file") is not None:
+            project_options["--env-file"] = request.config.getoption("--docker-compose-env-file")
+
         project = project_from_options(
             project_dir=str(project_dir),
-            options={"--file": compose_files},
+            options=project_options,
         )
 
         if not request.config.getoption("--docker-compose-no-build"):

@@ -7,7 +7,7 @@ setup(
     name="pytest-docker-compose",
     description="Manages Docker containers during your integration tests",
     long_description=long_description,
-    version="3.2.1",
+    version="3.2.2",
     author="Roald Storm",
     author_email="roaldstorm@gmail.com",
     url="https://github.com/pytest-docker-compose/pytest-docker-compose",
