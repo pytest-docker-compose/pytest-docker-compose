@@ -98,7 +98,6 @@ class DockerComposePlugin:
                         default=False, help="Boolean to use a UUID4 to uniquely name "
                                             "the project for running in parallel")
 
-
     @pytest.fixture(scope="session")
     def docker_project(self, request):
         """
