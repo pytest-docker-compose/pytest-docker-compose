@@ -135,17 +135,19 @@ class DockerComposePlugin:
         # https://github.com/pytest-docker-compose/pytest-docker-compose/pull/72
         compose_files = [str(p) for p in compose_files]
 
+        options = {"--file": compose_files}
         if request.config.getoption("--docker-compose-parallel"):
             project_name = "_".join([
                 str(project_dir),
                 str(uuid.uuid4())
             ])
+            options["--project-name"] = project_name
         else:
             project_name = str(project_dir)
 
         project = project_from_options(
             project_dir=str(project_dir),
-            options={"--file": compose_files, "--project-name": project_name},
+            options=options,
         )
 
         if not request.config.getoption("--docker-compose-no-build"):
