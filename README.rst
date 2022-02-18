@@ -126,7 +126,7 @@ This is done so that every test gets to run in a "clean" environment. However, t
 There are two options to make containers persist beyond a single test. The best way is to use the fixtures that are explicitly scoped to different scopes. There are three additional fixtures for this purpose: ``class_scoped_container_getter``, ``module_scoped_container_getter`` and ``session_scoped_container_getter``. Notice that you need to be careful when using these! There are two main caveats to keep in mind:
 
 1. Manage your scope correctly, using 'module' scope and 'function' scope in one single file will throw an error! This is because the module scoped fixture will spin up the containers and then the function scoped fixture will try to spin up the containers again. Docker compose does not allow you to spin up containers twice.
-2. Clean up your environment after each test. Because the containers are not restarted their environments can carry the information from previous tests. Therefore you need to be very carefull when designing your tests such that they leave the containers in the same state that it started in or you might run into difficult to understand behaviour.
+2. Clean up your environment after each test. Because the containers are not restarted their environments can carry the information from previous tests. Therefore you need to be very careful when designing your tests such that they leave the containers in the same state that it started in or you might run into difficult to understand behaviour.
 
 A second method to make containers persist beyond a single test is to supply the --use-running-containers flag to pytest like so:
 
