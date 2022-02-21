@@ -173,6 +173,12 @@ Docker compose allows for specifying multiple compose files as described in the 
 
     pytest --docker-compose=/path/to/docker-compose.yml,/another/docker-compose.yml,/third/docker-compose.yml
 
+You can also specify the services to use:
+
+.. code-block:: sh
+
+    pytest --docker-compose-service-names=mysql,redis
+
 .. tip::
     Alternatively, you can specify this option in your ``pytest.ini`` file:
 

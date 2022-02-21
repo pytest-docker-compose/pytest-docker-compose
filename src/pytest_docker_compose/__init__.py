@@ -93,6 +93,9 @@ class DockerComposePlugin:
                         default=False, help="Boolean to use a running set of containers "
                                             "instead of calling 'docker-compose up'")
 
+        group.addoption("--docker-compose-service-names", action="store",
+                        default="", help="List of services to start (comma-separated)")
+
     @pytest.fixture(scope="session")
     def docker_project(self, request):
         """
@@ -145,9 +148,11 @@ class DockerComposePlugin:
                     "'--docker-compose-no-build' flag, the newly build "
                     "containers won't be used if there are already "
                     "containers running!"))
-            current_containers = project.containers()
-            containers = project.up()
-            if not set(current_containers) == set(containers):
+            service_names = self.get_services_names(request=request)
+            current_containers = project.containers(service_names=service_names)
+            containers = project.up(service_names=service_names)
+
+            if not set(current_containers).issubset(set(containers)):
                 warnings.warn(UserWarning(
                     "You used the '--use-running-containers' but "
                     "pytest-docker-compose could not find all containers "
@@ -175,15 +180,16 @@ class DockerComposePlugin:
         @pytest.fixture(scope=scope)  # type: ignore
         def scoped_containers_fixture(docker_project: Project, request):
             now = datetime.utcnow()
+            service_names = cls.get_services_names(request=request)
             if request.config.getoption("--use-running-containers"):
-                containers = docker_project.containers()  # type: List[Container]
+                containers = docker_project.containers(service_names=service_names)  # type: List[Container]
             else:
-                if any(docker_project.containers()):
+                if any(docker_project.containers(service_names=service_names)):
                     raise ContainersAlreadyExist(
                         'pytest-docker-compose tried to start containers but there are'
                         ' already running containers: %s, you probably scoped your'
-                        ' tests wrong' % docker_project.containers())
-                containers = docker_project.up()
+                        ' tests wrong' % docker_project.containers(service_names=service_names))
+                containers = docker_project.up(service_names=service_names)
                 if not containers:
                     raise ValueError("`docker-compose` didn't launch any containers!")
 
@@ -208,6 +214,11 @@ class DockerComposePlugin:
             This set of containers is scoped to '%s'
             """ % scope
         return scoped_containers_fixture
+
+    @classmethod
+    def get_services_names(cls, request):
+        service_names = request.config.getoption("--docker-compose-service-names")
+        return None if service_names == "" else service_names.split(",")
 
 
 plugin = DockerComposePlugin()
