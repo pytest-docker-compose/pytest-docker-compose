@@ -146,7 +146,7 @@ class DockerComposePlugin:
                     "containers won't be used if there are already "
                     "containers running!"))
             current_containers = project.containers()
-            containers = project.up()
+            containers = project.up(detached=True)
             if not set(current_containers) == set(containers):
                 warnings.warn(UserWarning(
                     "You used the '--use-running-containers' but "
@@ -183,7 +183,7 @@ class DockerComposePlugin:
                         'pytest-docker-compose tried to start containers but there are'
                         ' already running containers: %s, you probably scoped your'
                         ' tests wrong' % docker_project.containers())
-                containers = docker_project.up()
+                containers = docker_project.up(detached=True)
                 if not containers:
                     raise ValueError("`docker-compose` didn't launch any containers!")
 
