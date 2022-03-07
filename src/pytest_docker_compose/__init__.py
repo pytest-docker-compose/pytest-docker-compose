@@ -1,4 +1,5 @@
 from typing import List
+import uuid
 import os.path
 from pathlib import Path
 import warnings
@@ -93,6 +94,10 @@ class DockerComposePlugin:
                         default=False, help="Boolean to use a running set of containers "
                                             "instead of calling 'docker-compose up'")
 
+        group.addoption("--docker-compose-parallel", action="store_true",
+                        default=False, help="Boolean to use a UUID4 to uniquely name "
+                                            "the project for running in parallel")
+
     @pytest.fixture(scope="session")
     def docker_project(self, request):
         """
@@ -130,9 +135,19 @@ class DockerComposePlugin:
         # https://github.com/pytest-docker-compose/pytest-docker-compose/pull/72
         compose_files = [str(p) for p in compose_files]
 
+        options = {"--file": compose_files}
+        if request.config.getoption("--docker-compose-parallel"):
+            project_name = "_".join([
+                str(project_dir),
+                str(uuid.uuid4())
+            ])
+            options["--project-name"] = project_name
+        else:
+            project_name = str(project_dir)
+
         project = project_from_options(
             project_dir=str(project_dir),
-            options={"--file": compose_files},
+            options=options,
         )
 
         if not request.config.getoption("--docker-compose-no-build"):
