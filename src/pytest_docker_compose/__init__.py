@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 from typing import List
 import os.path
 from pathlib import Path
@@ -5,14 +6,13 @@ import warnings
 from datetime import datetime
 
 import pytest
-from compose.cli.command import project_from_options
-from compose.container import Container
-from compose.project import Project
-from compose.service import ImageType
+from python_on_whales import DockerClient
+from python_on_whales.components.container.cli_wrapper import Container
 
 
 class ContainersAlreadyExist(Exception):
     """Raised when running containers are unexpectedly found"""
+
     pass
 
 
@@ -24,7 +24,12 @@ __all__ = [
 
 
 class NetworkInfo:
-    def __init__(self, container_port: str, hostname: str, host_port: int,):
+    def __init__(
+        self,
+        container_port: str,
+        hostname: str,
+        host_port: int,
+    ):
         """
         Container for info about how to connect to a service exposed by a
         Docker container.
@@ -49,22 +54,36 @@ def create_network_info_for_container(container: Container):
     # container.ports == {'4369/tcp': None,
     # '5984/tcp': [{'HostIp': '0.0.0.0', 'HostPort': '32872'}],
     # '9100/tcp': None}
-    return [NetworkInfo(container_port=container_port,
-                        hostname=port_config["HostIp"] or "localhost",
-                        host_port=port_config["HostPort"],)
-            for container_port, port_configs in container.ports.items()
-            if port_configs is not None for port_config in port_configs]
+    return [
+        NetworkInfo(
+            container_port=container_port,
+            hostname=port_config["HostIp"] or "localhost",
+            host_port=port_config["HostPort"],
+        )
+        for container_port, port_configs in container.network_settings.ports.items()
+        if port_configs is not None
+        for port_config in port_configs
+    ]
 
 
 class DockerComposePlugin:
     """
     Integrates docker-compose into pytest integration tests.
     """
+
     def __init__(self):
-        self.function_scoped_container_getter = self.generate_scoped_containers_fixture('function')
-        self.class_scoped_container_getter = self.generate_scoped_containers_fixture('class')
-        self.module_scoped_container_getter = self.generate_scoped_containers_fixture('module')
-        self.session_scoped_container_getter = self.generate_scoped_containers_fixture('session')
+        self.function_scoped_container_getter = self.generate_scoped_containers_fixture(
+            "function"
+        )
+        self.class_scoped_container_getter = self.generate_scoped_containers_fixture(
+            "class"
+        )
+        self.module_scoped_container_getter = self.generate_scoped_containers_fixture(
+            "module"
+        )
+        self.session_scoped_container_getter = self.generate_scoped_containers_fixture(
+            "session"
+        )
 
     # noinspection SpellCheckingInspection
     @staticmethod
@@ -83,15 +102,27 @@ class DockerComposePlugin:
             help="Path to docker-compose.yml file, or directory containing same.",
         )
 
-        group.addoption("--docker-compose-remove-volumes", action="store_true",
-                        default=False, help="Remove docker container volumes after tests")
+        group.addoption(
+            "--docker-compose-remove-volumes",
+            action="store_true",
+            default=False,
+            help="Remove docker container volumes after tests",
+        )
 
-        group.addoption("--docker-compose-no-build", action="store_true",
-                        default=False, help="Boolean to not build docker containers")
+        group.addoption(
+            "--docker-compose-no-build",
+            action="store_true",
+            default=False,
+            help="Boolean to not build docker containers",
+        )
 
-        group.addoption("--use-running-containers", action="store_true",
-                        default=False, help="Boolean to use a running set of containers "
-                                            "instead of calling 'docker-compose up'")
+        group.addoption(
+            "--use-running-containers",
+            action="store_true",
+            default=False,
+            help="Boolean to use a running set of containers "
+            "instead of calling 'docker-compose up'",
+        )
 
     @pytest.fixture(scope="session")
     def docker_project(self, request):
@@ -104,7 +135,9 @@ class DockerComposePlugin:
 
         compose_files = []
 
-        for docker_compose in [Path(f) for f in request.config.getoption("docker_compose").split(',')]:
+        for docker_compose in [
+            Path(f) for f in request.config.getoption("docker_compose").split(",")
+        ]:
             if docker_compose.is_dir():
                 docker_compose /= "docker-compose.yml"
 
@@ -120,46 +153,56 @@ class DockerComposePlugin:
 
         if len(compose_files) > 1:
             # py35 needs strings for os.path functions
-            project_dir = os.path.commonpath([str(f) for f in compose_files]) or '.'
+            project_dir = os.path.commonpath([str(f) for f in compose_files]) or "."
             compose_files = [p.relative_to(project_dir) for p in compose_files]
         else:
-            project_dir = '.'
+            project_dir = "."
 
         # py35 needs strings for os.path functions
         # Must be a list; will get accessed multiple times.
         # https://github.com/pytest-docker-compose/pytest-docker-compose/pull/72
         compose_files = [str(p) for p in compose_files]
 
-        project = project_from_options(
-            project_dir=str(project_dir),
-            options={"--file": compose_files},
+        project = DockerClient(
+            compose_project_directory=str(project_dir),
+            compose_files=compose_files,
         )
 
         if not request.config.getoption("--docker-compose-no-build"):
-            project.build()
+            project.compose.build()
 
         if request.config.getoption("--use-running-containers"):
             if not request.config.getoption("--docker-compose-no-build"):
-                warnings.warn(UserWarning(
-                    "You used the '--use-running-containers' without the "
-                    "'--docker-compose-no-build' flag, the newly build "
-                    "containers won't be used if there are already "
-                    "containers running!"))
-            current_containers = project.containers()
-            containers = project.up()
-            if not set(current_containers) == set(containers):
-                warnings.warn(UserWarning(
-                    "You used the '--use-running-containers' but "
-                    "pytest-docker-compose could not find all containers "
-                    "running. The remaining containers have been started."))
+                warnings.warn(
+                    UserWarning(
+                        "You used the '--use-running-containers' without the "
+                        "'--docker-compose-no-build' flag, the newly build "
+                        "containers won't be used if there are already "
+                        "containers running!"
+                    )
+                )
+            current_containers = project.compose.ps()
+            project.compose.up()
+            containers = [
+                key for key, value in project.compose.config().services.items()
+            ]
+            if not len(current_containers) == len(containers):
+                warnings.warn(
+                    UserWarning(
+                        "You used the '--use-running-containers' but "
+                        "pytest-docker-compose could not find all containers "
+                        "running. The remaining containers have been started."
+                    )
+                )
         else:
-            if any(project.containers()):
+            if any(project.compose.ps()):
                 raise ContainersAlreadyExist(
                     "There are already existing containers, please remove all "
                     "containers by running 'docker-compose down' before using "
                     "the pytest-docker-compose plugin. Alternatively, you "
                     "can use the '--use-running-containers' flag to indicate "
-                    "you will use the currently running containers.")
+                    "you will use the currently running containers."
+                )
         return project
 
     @classmethod
@@ -172,41 +215,52 @@ class DockerComposePlugin:
         After the tests wrap up the fixture prints the logs of each containers
         and tears them down unless '--use-running-containers' was supplied.
         """
+
         @pytest.fixture(scope=scope)  # type: ignore
-        def scoped_containers_fixture(docker_project: Project, request):
+        def scoped_containers_fixture(docker_project: DockerClient, request):
             now = datetime.utcnow()
             if request.config.getoption("--use-running-containers"):
-                containers = docker_project.containers()  # type: List[Container]
+                containers = docker_project.compose.ps()  # type: List[Container]
             else:
-                if any(docker_project.containers()):
+                if any(docker_project.compose.ps()):
                     raise ContainersAlreadyExist(
-                        'pytest-docker-compose tried to start containers but there are'
-                        ' already running containers: %s, you probably scoped your'
-                        ' tests wrong' % docker_project.containers())
-                containers = docker_project.up()
-                if not containers:
+                        "pytest-docker-compose tried to start containers but there are"
+                        " already running containers: %s, you probably scoped your"
+                        " tests wrong" % docker_project.compose.ps()
+                    )
+                docker_project.compose.up()
+                if not any(docker_project.compose.ps()):
                     raise ValueError("`docker-compose` didn't launch any containers!")
 
             container_getter = ContainerGetter(docker_project)
             yield container_getter
 
             if request.config.getoption("--verbose"):
+                containers = docker_project.compose.ps()
                 for container in sorted(containers, key=lambda c: c.name):
                     header = "Logs from {name}:".format(name=container.name)
-                    print(header, '\n', "=" * len(header))
-                    print(container.logs(since=now).decode("utf-8", errors="replace")
-                          or "(no logs)", '\n')
+                    print(header, "\n", "=" * len(header))
+                    print(
+                        container.logs(since=now)
+                        or "(no logs)",
+                        "\n",
+                    )
 
             if not request.config.getoption("--use-running-containers"):
-                docker_project.down(ImageType.none, request.config.getoption("--docker-compose-remove-volumes"))
+                docker_project.compose.down(
+                    volumes=request.config.getoption("--docker-compose-remove-volumes")
+                )
 
-        scoped_containers_fixture.__wrapped__.__doc__ = """
+        scoped_containers_fixture.__wrapped__.__doc__ = (
+            """
             Spins up the containers for the Docker project and returns an
             object that can retrieve the containers. The returned containers
             all have one additional attribute called network_info to simplify
             accessing the hostnames and exposed port numbers for each container.
             This set of containers is scoped to '%s'
-            """ % scope
+            """
+            % scope
+        )
         return scoped_containers_fixture
 
 
@@ -218,17 +272,27 @@ class ContainerGetter:
     A class that retrieves containers from the docker project and adds a
     convenience wrapper for the available ports
     """
-    def __init__(self, docker_project: Project) -> None:
+
+    def __init__(self, docker_project: DockerClient) -> None:
         self.docker_project = docker_project
 
     def get(self, key: str) -> Container:
-        containers = self.docker_project.containers(service_names=[key])
-        if not containers:
-            containers = self.docker_project.containers(service_names=[key], stopped=True)
-            warnings.warn(UserWarning(
-                "The service '%s' only has a stopped container, "
-                "it stopped with '%s'" % (key, containers[0].human_readable_state)
-            ))
-        container = containers[0]
-        container.network_info = create_network_info_for_container(container)
+        containers = {
+            container.config.labels["com.docker.compose.service"]: container
+            for container in self.docker_project.compose.ps()
+        }
+        containers_running = {
+            key: value
+            for key, value in containers.items()
+            if value.state.running
+        }
+        if not containers_running.get(key):
+            warnings.warn(
+                UserWarning(
+                    "The service '%s' only has a stopped container, "
+                    "it stopped with '%s'" % (key, containers[key].state.status)
+                )
+            )
+        container = containers[key]
+        setattr(container, "network_info", create_network_info_for_container(container))
         return container
