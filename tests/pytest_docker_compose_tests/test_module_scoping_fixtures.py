@@ -18,12 +18,16 @@ def wait_for_api(module_scoped_container_getter):
                     status_forcelist=[500, 502, 503, 504])
     request_session.mount('http://', HTTPAdapter(max_retries=retries))
 
-    service = module_scoped_container_getter.get("my_api_service").network_info[0]
-    api_url = "http://%s:%s/" % (service.hostname, service.host_port)
+    container = module_scoped_container_getter.get("my_api_service")
+    assert hasattr(container, "network_info")
+    assert container.network_info
+
+    network_info = container.network_info[0]
+    api_url = "http://%s:%s/" % (network_info.hostname, network_info.host_port)
     assert request_session.get(api_url)
 
     start = time.time()
-    while 'Exit' not in module_scoped_container_getter.get("my_short_lived_service").human_readable_state:
+    while 'exited' not in module_scoped_container_getter.get("my_short_lived_service").state.status:
         if time.time() - start >= 5:
             raise RuntimeError(
                 'my_short_lived_service should spin up, echo "Echoing" and '
