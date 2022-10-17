@@ -13,7 +13,7 @@ setup(
     url="https://github.com/pytest-docker-compose/pytest-docker-compose",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    install_requires=["docker-compose", "pytest >= 3.3"],
+    install_requires=["python-on-whales", "pytest >= 3.3"],
 
     entry_points={
         "pytest11": [
