@@ -151,12 +151,12 @@ class DockerComposePlugin:
 
             compose_files.append(docker_compose)
 
+        project_dir: str = None
         if len(compose_files) > 1:
             # py35 needs strings for os.path functions
-            project_dir = os.path.commonpath([str(f) for f in compose_files]) or "."
-            compose_files = [p.relative_to(project_dir) for p in compose_files]
-        else:
-            project_dir = "."
+            project_dir = str(
+                os.path.commonpath([str(f) for f in compose_files]) or "."
+            )
 
         # py35 needs strings for os.path functions
         # Must be a list; will get accessed multiple times.
@@ -164,7 +164,7 @@ class DockerComposePlugin:
         compose_files = [str(p) for p in compose_files]
 
         project = DockerClient(
-            compose_project_directory=str(project_dir),
+            compose_project_directory=project_dir,
             compose_files=compose_files,
         )
 
@@ -182,7 +182,7 @@ class DockerComposePlugin:
                     )
                 )
             current_containers = project.compose.ps()
-            project.compose.up()
+            project.compose.up(detach=True, quiet=True)
             containers = [
                 key for key, value in project.compose.config().services.items()
             ]
@@ -195,7 +195,13 @@ class DockerComposePlugin:
                     )
                 )
         else:
-            if any(project.compose.ps()):
+            if any(
+                (
+                    container
+                    for container in project.compose.ps()
+                    if container.state.running
+                )
+            ):
                 raise ContainersAlreadyExist(
                     "There are already existing containers, please remove all "
                     "containers by running 'docker-compose down' before using "
@@ -219,16 +225,20 @@ class DockerComposePlugin:
         @pytest.fixture(scope=scope)  # type: ignore
         def scoped_containers_fixture(docker_project: DockerClient, request):
             now = datetime.utcnow()
-            if request.config.getoption("--use-running-containers"):
-                containers = docker_project.compose.ps()  # type: List[Container]
-            else:
-                if any(docker_project.compose.ps()):
+            if not request.config.getoption("--use-running-containers"):
+                if any(
+                    (
+                        container
+                        for container in docker_project.compose.ps()
+                        if container.state.running
+                    )
+                ):
                     raise ContainersAlreadyExist(
                         "pytest-docker-compose tried to start containers but there are"
                         " already running containers: %s, you probably scoped your"
                         " tests wrong" % docker_project.compose.ps()
                     )
-                docker_project.compose.up()
+                docker_project.compose.up(detach=True, quiet=True)
                 if not any(docker_project.compose.ps()):
                     raise ValueError("`docker-compose` didn't launch any containers!")
 
@@ -241,8 +251,7 @@ class DockerComposePlugin:
                     header = "Logs from {name}:".format(name=container.name)
                     print(header, "\n", "=" * len(header))
                     print(
-                        container.logs(since=now)
-                        or "(no logs)",
+                        container.logs(since=now) or "(no logs)",
                         "\n",
                     )
 
@@ -282,17 +291,16 @@ class ContainerGetter:
             for container in self.docker_project.compose.ps()
         }
         containers_running = {
-            key: value
-            for key, value in containers.items()
-            if value.state.running
+            key: value for key, value in containers.items() if value.state.running
         }
+        container = containers[key]
         if not containers_running.get(key):
             warnings.warn(
                 UserWarning(
                     "The service '%s' only has a stopped container, "
-                    "it stopped with '%s'" % (key, containers[key].state.status)
+                    "it stopped with '%s'" % (key, container.state.status)
                 )
             )
-        container = containers[key]
-        setattr(container, "network_info", create_network_info_for_container(container))
+        network_info = create_network_info_for_container(container)
+        container.__dict__["network_info"] = network_info
         return container
